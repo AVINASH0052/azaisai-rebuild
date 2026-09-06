@@ -415,9 +415,9 @@ export function Studio({ mode }: { mode: Kind }) {
               >
                 <span className="flex items-center justify-between gap-2">
                   <span className="font-medium text-fg">{m.label}</span>
-                  {m.availability === "mock_only" || m.badge ? (
+                  {m.badge ? (
                     <span className="font-mono text-[10px] tracking-wide text-accent uppercase">
-                      {m.availability === "mock_only" ? "Mock" : m.badge}
+                      {m.badge}
                     </span>
                   ) : null}
                 </span>
@@ -619,7 +619,7 @@ export function Studio({ mode }: { mode: Kind }) {
           {busy ? "Working…" : "Generate"}
         </Button>
         <p className="mt-2 text-center font-mono text-[11px] text-fg-subtle">
-          ⌘↵ · {model?.availability === "live" ? "Google when live" : "mock"}
+          ⌘↵ · Google AI Studio
         </p>
       </section>
 
@@ -660,7 +660,7 @@ export function Studio({ mode }: { mode: Kind }) {
                     ? "Rendered with Veo."
                     : "Rendered with Gemini Flash Image."
                   : mode === "video"
-                    ? "Sample clip while the live provider is mocked."
+                    ? "Sample clip — live Veo was not used for this one."
                     : "Still rendered from your prompt."}
               </p>
             </div>

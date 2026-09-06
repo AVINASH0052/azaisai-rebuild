@@ -81,78 +81,6 @@ export const MODELS: Model[] = [
     estimatedSeconds: 45,
   },
   {
-    id: "sora-2",
-    label: "Sora Standard",
-    vendor: "OpenAI",
-    kind: "video",
-    badge: "Popular",
-    availability: "mock_only",
-    credits: { per: "second", rate: 1 },
-    capabilities: {
-      audio: true,
-      aspects: VIDEO_ASPECTS,
-      resolutions: ["720p", "1080p"],
-    },
-    estimatedSeconds: 120,
-  },
-  {
-    id: "sora-2-pro",
-    label: "Sora Pro",
-    vendor: "OpenAI",
-    kind: "video",
-    badge: "Premium",
-    availability: "mock_only",
-    credits: { per: "second", rate: 2 },
-    capabilities: {
-      audio: true,
-      aspects: VIDEO_ASPECTS,
-      resolutions: ["720p", "1080p"],
-    },
-    estimatedSeconds: 180,
-  },
-  {
-    id: "runway-gen4-turbo",
-    label: "Gen-4 Turbo",
-    vendor: "Runway",
-    kind: "video",
-    badge: "Popular",
-    availability: "mock_only",
-    credits: { per: "second", rate: 1 },
-    capabilities: {
-      aspects: VIDEO_ASPECTS,
-      resolutions: ["720p"],
-    },
-    estimatedSeconds: 120,
-  },
-  {
-    id: "runway-gen4-5",
-    label: "Gen-4.5",
-    vendor: "Runway",
-    kind: "video",
-    badge: "Premium",
-    availability: "mock_only",
-    credits: { per: "second", rate: 1.2 },
-    capabilities: {
-      aspects: VIDEO_ASPECTS,
-      resolutions: ["720p", "1080p"],
-    },
-    estimatedSeconds: 120,
-  },
-  {
-    id: "runway-gen3-alpha-turbo",
-    label: "Gen-3 Alpha Turbo",
-    vendor: "Runway",
-    kind: "video",
-    badge: "Fast",
-    availability: "mock_only",
-    credits: { per: "second", rate: 1 },
-    capabilities: {
-      aspects: VIDEO_ASPECTS,
-      resolutions: ["720p"],
-    },
-    estimatedSeconds: 60,
-  },
-  {
     id: "nano-banana-2",
     label: "Nano Banana 2",
     vendor: GOOGLE,
@@ -176,33 +104,10 @@ export const MODELS: Model[] = [
     capabilities: { aspects: IMAGE_ASPECTS, styles: [...IMAGE_STYLES] },
     estimatedSeconds: 15,
   },
-  {
-    id: "gpt-image",
-    label: "GPT Image",
-    vendor: "OpenAI",
-    kind: "image",
-    badge: "Premium",
-    availability: "mock_only",
-    credits: { per: "image", rate: 2 },
-    capabilities: { aspects: IMAGE_ASPECTS, styles: [...IMAGE_STYLES] },
-    estimatedSeconds: 10,
-  },
-  {
-    id: "runway-gen4-image",
-    label: "Gen-4 Image",
-    vendor: "Runway",
-    kind: "image",
-    availability: "mock_only",
-    credits: { per: "image", rate: 1 },
-    capabilities: { aspects: IMAGE_ASPECTS, styles: [...IMAGE_STYLES] },
-    estimatedSeconds: 20,
-  },
 ];
 
 export function modelsFor(kind: Kind) {
-  return MODELS.filter((m) => m.kind === kind && m.availability !== "disabled").sort(
-    (a, b) => Number(a.availability !== "live") - Number(b.availability !== "live"),
-  );
+  return MODELS.filter((m) => m.kind === kind && m.availability === "live");
 }
 
 export function getModel(id: string) {

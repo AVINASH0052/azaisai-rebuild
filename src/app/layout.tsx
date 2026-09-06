@@ -21,7 +21,7 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Hearth",
-  description: "Credit-metered video and images from Google AI Studio.",
+  description: "Ten seconds means ten. Live Veo and Gemini from Google AI Studio.",
 };
 
 export default function RootLayout({
