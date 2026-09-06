@@ -8,6 +8,7 @@ import { workerConfigured, workerLastFrame, workerStitch } from "@/lib/worker";
 import { getModel } from "@/providers/registry";
 import { submitGoogleVideo, pollGoogle, type SeedImage } from "@/providers/google";
 import { afterSegmentReady, clipFileUrl, pipelineProgress } from "@/providers/pipeline";
+import { veoSecForBeat } from "@/providers/long-video";
 
 export const maxDuration = 60;
 
@@ -32,6 +33,8 @@ const bodySchema = z.object({
       z.object({
         index: z.number().int(),
         prompt: z.string().min(1),
+        contentSec: z.number().optional(),
+        veoSec: z.number().optional(),
       }),
     )
     .optional(),
@@ -46,6 +49,7 @@ async function startNextBeat(body: ProgressBody, seed: SeedImage) {
   return submitGoogleVideo(model, {
     prompt: beat?.prompt ?? "Continues from the last frame.",
     aspect: body.aspect,
+    durationSec: beat?.veoSec ?? veoSecForBeat(body.durationSec ?? 8, body.videoUris.length),
     seedImage: seed,
   });
 }

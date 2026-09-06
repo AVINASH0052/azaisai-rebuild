@@ -11,6 +11,7 @@ import {
   MIN_VIDEO_SEC,
   clampDuration,
   fallbackBeats,
+  generatedSeconds,
   segmentCount,
 } from "@/providers/long-video";
 import {
@@ -49,6 +50,7 @@ export function Studio({ mode }: { mode: Kind }) {
     poster: string;
     video?: string;
     videos?: string[];
+    clipSecs?: number[];
     live?: boolean;
   } | null>(null);
   const [balance, setBalance] = useState(5);
@@ -93,6 +95,7 @@ export function Studio({ mode }: { mode: Kind }) {
           : assetUrl(last.kind, last.prompt, last.aspect, last.modelId),
       video: clips?.[0],
       videos: clips,
+      clipSecs: last.clipSecs,
       live: last.id.startsWith("g_"),
     });
   }, [mode]);
@@ -211,6 +214,12 @@ export function Studio({ mode }: { mode: Kind }) {
           mode === "video"
             ? (outputUrls?.length ? outputUrls : [outputUrl ?? "/mock/flower.mp4"])
             : undefined;
+        const clipSecs =
+          mode === "video"
+            ? (beats.length === segments
+                ? beats.map((b) => b.contentSec)
+                : fallbackBeats(prompt.trim(), durationSec).map((b) => b.contentSec))
+            : undefined;
         const poster =
           mode === "image"
             ? (outputUrl ?? assetUrl(mode, prompt.trim(), aspect, model.id))
@@ -221,6 +230,7 @@ export function Studio({ mode }: { mode: Kind }) {
           poster,
           video: clips?.[0],
           videos: clips,
+          clipSecs,
           live,
         });
         saveJob({
@@ -235,6 +245,7 @@ export function Studio({ mode }: { mode: Kind }) {
           status: "ready",
           outputUrl: mode === "image" ? outputUrl : clips?.[0],
           outputUrls: clips,
+          clipSecs,
         });
       };
       if (json.status === "ready") {
@@ -490,14 +501,14 @@ export function Studio({ mode }: { mode: Kind }) {
             </div>
             <p className="mt-1 text-xs text-fg-subtle">
               Each beat starts from the last frame of the one before it. Clips
-              play in order — no Cloud Run stitch.
+              play in order.
             </p>
             {(beats.length ? beats : fallbackBeats(prompt.trim() || "…", durationSec)).map(
               (beat) => (
                 <label key={beat.index} className="mt-3 block">
                   <span className="font-mono text-[11px] text-accent">
                     {beat.index + 1} · {beat.startSec}–{beat.endSec}s
-                    {beat.contentSec < 8 ? " · trim" : ""}
+                    {beat.contentSec < beat.veoSec ? " · trim" : ""}
                   </span>
                   <textarea
                     className={`${field} mt-1 min-h-16 resize-y text-sm`}
@@ -547,7 +558,9 @@ export function Studio({ mode }: { mode: Kind }) {
         <div className="mt-6 rounded-2xl border border-border bg-bg-inset px-3 py-2 text-sm text-fg">
           Cost {cost} cr
           {mode === "video"
-            ? ` · ${segments} × 8s · ${durationSec}s delivered`
+            ? generatedSeconds(durationSec) === durationSec
+              ? ` · ${durationSec}s`
+              : ` · ${generatedSeconds(durationSec)}s generated · ${durationSec}s delivered`
             : ""}
           {" · "}
           {unlimitedCredits()
@@ -577,6 +590,7 @@ export function Studio({ mode }: { mode: Kind }) {
                 <ClipPlaylist
                   id={result.id}
                   clips={result.videos}
+                  clipSecs={result.clipSecs}
                   poster={result.poster}
                 />
               ) : (
@@ -626,15 +640,18 @@ export function Studio({ mode }: { mode: Kind }) {
 function ClipPlaylist({
   id,
   clips,
+  clipSecs,
   poster,
 }: {
   id: string;
   clips: string[];
+  clipSecs?: number[];
   poster: string;
 }) {
   const [index, setIndex] = useState(0);
   const [playError, setPlayError] = useState<string | null>(null);
   const src = clips[index] ?? clips[0];
+  const limit = clipSecs?.[index];
   return (
     <div>
       <video
@@ -648,6 +665,14 @@ function ClipPlaylist({
         src={src}
         onError={() => setPlayError("The clip loaded, then the player lost the file. Try Download.")}
         onPlaying={() => setPlayError(null)}
+        onTimeUpdate={(e) => {
+          if (limit == null) return;
+          const el = e.currentTarget;
+          if (el.currentTime >= limit) {
+            el.pause();
+            if (index + 1 < clips.length) setIndex(index + 1);
+          }
+        }}
         onEnded={() => {
           if (index + 1 < clips.length) setIndex(index + 1);
         }}

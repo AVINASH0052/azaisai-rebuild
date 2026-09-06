@@ -8,7 +8,7 @@ import { supabaseConfigured } from "@/lib/supabase/config";
 import { getModel } from "@/providers/registry";
 import { quoteCredits } from "@/providers/quote";
 import { createJobId } from "@/providers/mock-job";
-import { isVideoDuration, segmentCount } from "@/providers/long-video";
+import { isVideoDuration, segmentCount, veoSecForBeat } from "@/providers/long-video";
 import { env } from "@/lib/env";
 import { generateGoogleImage, googleLive, submitGoogleVideo } from "@/providers/google";
 import { createLiveJobId } from "@/providers/pipeline";
@@ -29,6 +29,7 @@ const bodySchema = z.object({
         startSec: z.number(),
         endSec: z.number(),
         contentSec: z.number().optional(),
+        veoSec: z.number().optional(),
         prompt: z.string().min(1),
       }),
     )
@@ -84,7 +85,12 @@ export async function POST(req: Request) {
             { status: 202, headers: { "X-Request-Id": id } },
           );
         }
-        const handle = await submitGoogleVideo(model, { prompt: firstPrompt, aspect });
+        const firstLen = storyboard?.[0]?.veoSec ?? veoSecForBeat(durationSec ?? 8, 0);
+        const handle = await submitGoogleVideo(model, {
+          prompt: firstPrompt,
+          aspect,
+          durationSec: firstLen,
+        });
         const jobId = createLiveJobId("video", { durationSec, segments });
         void notifyWorker({ type: "ping", id: jobId });
         return NextResponse.json(

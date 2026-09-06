@@ -8,12 +8,13 @@ function veoPredictBody(req) {
       mimeType: req.seedImage.mimeType,
     };
   }
+  const duration = req.durationSec ?? 8;
+  const durationSeconds = duration <= 4 ? 4 : duration <= 6 ? 6 : 8;
   return {
     instances: [instance],
     parameters: {
       aspectRatio: req.aspect === "9:16" ? "9:16" : "16:9",
-      resolution: "720p",
-      durationSeconds: 8,
+      durationSeconds,
       sampleCount: 1,
     },
   };
@@ -30,6 +31,8 @@ const t2v = veoPredictBody({ prompt: "drone", aspect: "16:9" });
 assert.equal(t2v.instances[0].prompt, "drone");
 assert.equal(t2v.instances[0].image, undefined);
 assert.equal(t2v.parameters.durationSeconds, 8);
+assert.equal(veoPredictBody({ prompt: "x", aspect: "16:9", durationSec: 6 }).parameters.durationSeconds, 6);
+assert.equal(veoPredictBody({ prompt: "x", aspect: "16:9", durationSec: 4 }).parameters.durationSeconds, 4);
 
 const i2v = veoPredictBody({
   prompt: "continues",
@@ -49,6 +52,15 @@ assert.equal(
   "https://v",
 );
 assert.equal(videoUriFromOperation({ done: true }), undefined);
+
+function friendlyVeoMessage(raw) {
+  const text = (raw ?? "").trim();
+  if (/internal server/i.test(text)) {
+    return "Veo failed on Google's side (quota or a temporary outage). The first clip never finished — wait a minute and try again.";
+  }
+  return text || "Veo failed.";
+}
+assert.match(friendlyVeoMessage("Video generation failed due to an internal server issue."), /Google's side/);
 
 function byteRange(header, total) {
   if (total <= 0) return { start: 0, end: 0, status: 200 };

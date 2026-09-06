@@ -11,6 +11,7 @@ export type SeedImage = { mimeType: string; data: string };
 export type VeoSubmit = {
   prompt: string;
   aspect: string;
+  durationSec?: number;
   seedImage?: SeedImage;
 };
 
@@ -40,7 +41,15 @@ export function googleLive(model: Model) {
   );
 }
 
-export function veoPredictBody(req: VeoSubmit) {
+export function friendlyVeoMessage(raw?: string) {
+  const text = raw?.trim() ?? "";
+  if (/internal server/i.test(text)) {
+    return "Veo failed on Google's side (quota or a temporary outage). The first clip never finished — wait a minute and try again.";
+  }
+  return text || "Veo failed.";
+}
+
+export function veoPredictBody(req: VeoSubmit & { resolution?: string }) {
   const instance: Record<string, unknown> = { prompt: req.prompt };
   if (req.seedImage) {
     instance.image = {
@@ -48,15 +57,15 @@ export function veoPredictBody(req: VeoSubmit) {
       mimeType: req.seedImage.mimeType,
     };
   }
-  return {
-    instances: [instance],
-    parameters: {
-      aspectRatio: req.aspect === "9:16" ? "9:16" : "16:9",
-      resolution: "720p",
-      durationSeconds: 8,
-      sampleCount: 1,
-    },
+  const duration = req.durationSec ?? 8;
+  const durationSeconds = duration <= 4 ? 4 : duration <= 6 ? 6 : 8;
+  const parameters: Record<string, unknown> = {
+    aspectRatio: req.aspect === "9:16" ? "9:16" : "16:9",
+    durationSeconds,
+    sampleCount: 1,
   };
+  if (req.resolution) parameters.resolution = req.resolution;
+  return { instances: [instance], parameters };
 }
 
 export function videoUriFromOperation(data: unknown): string | undefined {
@@ -102,15 +111,23 @@ export async function submitGoogleVideo(
 ): Promise<ProviderHandle> {
   const id = model.providerModel;
   if (!id) throw new AppError("PROVIDER_UNAVAILABLE", "No Google model mapped.");
-  const res = await fetch(`${BASE}/models/${id}:predictLongRunning`, {
-    method: "POST",
-    headers: headers(),
-    body: JSON.stringify(veoPredictBody(req)),
-  });
-  throwIfQuota(res, "Veo request failed.");
-  const data = (await res.json()) as { name?: string };
-  if (!data.name) throw new AppError("PROVIDER_UNAVAILABLE", "Veo returned no operation.");
-  return { provider: "google", jobId: data.name };
+  const resolution = model.id.startsWith("veo-2") ? undefined : "720p";
+  let last: AppError | null = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, 1500));
+    const res = await fetch(`${BASE}/models/${id}:predictLongRunning`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify(veoPredictBody({ ...req, resolution })),
+    });
+    if (res.status === 429) {
+      throw new AppError("SPEND_CAP_REACHED", "Daily Google quota is used up.");
+    }
+    const data = (await res.json().catch(() => ({}))) as { name?: string; error?: { message?: string } };
+    if (res.ok && data.name) return { provider: "google", jobId: data.name };
+    last = new AppError("PROVIDER_UNAVAILABLE", friendlyVeoMessage(data.error?.message ?? "Veo request failed."));
+  }
+  throw last ?? new AppError("PROVIDER_UNAVAILABLE", "Veo request failed.");
 }
 
 export async function pollGoogle(handle: ProviderHandle): Promise<ProviderStatus> {
@@ -131,7 +148,7 @@ export async function pollGoogle(handle: ProviderHandle): Promise<ProviderStatus
     return {
       state: "failed",
       code: "provider_error",
-      message: data.error.message ?? "Veo failed.",
+      message: friendlyVeoMessage(data.error.message),
       billable: false,
     };
   }

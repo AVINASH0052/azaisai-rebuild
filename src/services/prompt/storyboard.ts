@@ -28,11 +28,10 @@ export async function planStoryboard(input: {
   const n = segmentCount(input.durationSec);
   if (n <= 1) return fallbackBeats(input.prompt, input.durationSec);
   const windows = beatWindows(input.durationSec);
-  const last = windows[windows.length - 1];
   if (!googleAiConfigured()) return fallbackBeats(input.prompt, input.durationSec);
 
   const raw = await generateText(
-    `Split this into ${n} consecutive beats of ONE continuous scene. Beat 2+ continues from the last frame of the previous beat — do not restart the shot. The last beat must fully resolve in ${last.contentSec} seconds because it will be trimmed. Return ONLY a JSON array of ${n} objects: [{"prompt":"..."}]. No markdown.\n\n${input.prompt}`,
+    `Split this into ${n} consecutive beats of ONE continuous scene. Durations: ${windows.map((w) => `${w.contentSec}s`).join(", ")}. Beat 2+ continues from the last frame of the previous beat — do not restart the shot. Each beat must resolve in its own duration. Return ONLY a JSON array of ${n} objects: [{"prompt":"..."}]. No markdown.\n\n${input.prompt}`,
   );
   return parseBeats(raw, input.durationSec) ?? fallbackBeats(input.prompt, input.durationSec);
 }

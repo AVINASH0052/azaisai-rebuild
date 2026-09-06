@@ -10,6 +10,7 @@ export type LocalJob = {
   status: "queued" | "processing" | "ready" | "failed";
   outputUrl?: string;
   outputUrls?: string[];
+  clipSecs?: number[];
 };
 
 const KEY = "azai.jobs";

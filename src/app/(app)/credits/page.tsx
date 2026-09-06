@@ -28,7 +28,7 @@ export default function CreditsPage() {
         <p className="mt-1 text-sm text-fg-muted">
           {unlimitedCredits()
             ? "Test user — credits are not limited."
-            : "A 6s Veo Fast clip costs 12 credits (one 8s segment)."}
+            : "A 6s Veo Fast clip costs 9 credits."}
         </p>
       </div>
     </main>
