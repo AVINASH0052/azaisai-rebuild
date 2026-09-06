@@ -7,9 +7,17 @@ export async function enhancePrompt(input: {
 }) {
   const kind = input.kind ?? "video";
   const modelHint = input.modelId ? ` Target model: ${input.modelId}.` : "";
-  return generateText(
-    `Rewrite this ${kind} generation prompt so it is richer and more specific.${modelHint} Return only the rewritten prompt.\n\n${input.prompt}`,
-  );
+  try {
+    return await generateText(
+      `Rewrite this ${kind} generation prompt so it is richer and more specific.${modelHint} Return only the rewritten prompt.\n\n${input.prompt}`,
+    );
+  } catch {
+    const extra =
+      kind === "video"
+        ? "cinematic lighting, steady camera, natural motion, sharp detail"
+        : "cinematic lighting, sharp detail, natural color";
+    return `${input.prompt.trim()}, ${extra}`;
+  }
 }
 
 export async function variatePrompt(input: { prompt: string; kind?: "video" | "image" }) {

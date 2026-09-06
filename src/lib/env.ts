@@ -19,7 +19,7 @@ const schema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.preprocess(emptyToUndef, z.string().min(1).optional()),
   FAL_KEY: z.preprocess(emptyToUndef, z.string().min(1).optional()),
   GOOGLE_AI_STUDIO: z.preprocess(emptyToUndef, z.string().min(1).optional()),
-  GOOGLE_AI_MODEL: z.string().min(1).default("gemini-2.0-flash"),
+  GOOGLE_AI_MODEL: z.string().min(1).default("gemini-2.5-flash"),
   ANTHROPIC_API_KEY: z.preprocess(emptyToUndef, z.string().min(1).optional()),
   STRIPE_SECRET_KEY: z.preprocess(emptyToUndef, z.string().min(1).optional()),
   STRIPE_WEBHOOK_SECRET: z.preprocess(emptyToUndef, z.string().min(1).optional()),

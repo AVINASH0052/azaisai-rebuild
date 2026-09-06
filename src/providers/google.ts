@@ -148,8 +148,22 @@ export async function pollGoogle(handle: ProviderHandle): Promise<ProviderStatus
   return { state: "succeeded", artifacts: [{ url: uri, role: "output" }] };
 }
 
-export async function fetchGoogleMedia(uri: string) {
-  const res = await fetch(uri, { headers: { "x-goog-api-key": key() } });
+export function byteRange(header: string | null, total: number) {
+  if (total <= 0) return { start: 0, end: 0, status: 200 as const };
+  if (!header) return { start: 0, end: total - 1, status: 200 as const };
+  const m = /bytes=(\d+)-(\d*)/.exec(header);
+  if (!m) return { start: 0, end: total - 1, status: 200 as const };
+  const start = Math.min(Number(m[1]), total - 1);
+  const end = m[2] === "" ? total - 1 : Math.min(Number(m[2]), total - 1);
+  if (start > end) return { start: 0, end: total - 1, status: 200 as const };
+  const partial = start > 0 || end < total - 1;
+  return { start, end, status: (partial ? 206 : 200) as 200 | 206 };
+}
+
+export async function fetchGoogleMedia(uri: string, range?: string | null) {
+  const headers: Record<string, string> = { "x-goog-api-key": key() };
+  if (range) headers.Range = range;
+  const res = await fetch(uri, { headers });
   throwIfQuota(res, "Could not download the generated file.");
   return res;
 }

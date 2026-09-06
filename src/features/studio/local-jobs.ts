@@ -8,6 +8,8 @@ export type LocalJob = {
   cost: number;
   createdAt: number;
   status: "queued" | "processing" | "ready" | "failed";
+  outputUrl?: string;
+  outputUrls?: string[];
 };
 
 const KEY = "azai.jobs";

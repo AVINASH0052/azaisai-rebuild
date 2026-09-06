@@ -20,7 +20,7 @@ import {
   refundCredits,
   unlimitedCredits,
 } from "./credits-store";
-import { saveJob } from "./local-jobs";
+import { loadJobs, saveJob } from "./local-jobs";
 import { captureLastFrame } from "./last-frame";
 
 const field =
@@ -75,6 +75,28 @@ export function Studio({ mode }: { mode: Kind }) {
     setBeats([]);
   }, [durationSec]);
 
+  useEffect(() => {
+    const last = loadJobs().find(
+      (j) => j.kind === mode && j.status === "ready" && (j.outputUrls?.length || j.outputUrl),
+    );
+    if (!last) return;
+    const clips =
+      last.kind === "video"
+        ? (last.outputUrls?.length ? last.outputUrls : last.outputUrl ? [last.outputUrl] : undefined)
+        : undefined;
+    setResult({
+      id: last.id,
+      kind: last.kind,
+      poster:
+        last.kind === "image"
+          ? (last.outputUrl ?? assetUrl(last.kind, last.prompt, last.aspect, last.modelId))
+          : assetUrl(last.kind, last.prompt, last.aspect, last.modelId),
+      video: clips?.[0],
+      videos: clips,
+      live: last.id.startsWith("g_"),
+    });
+  }, [mode]);
+
   const cost = useMemo(
     () => (model ? quoteCredits(model, mode === "video" ? durationSec : undefined) : 0),
     [model, mode, durationSec],
@@ -113,6 +135,7 @@ export function Studio({ mode }: { mode: Kind }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, kind: mode, modelId }),
+        signal: AbortSignal.timeout(25_000),
       });
       const json = (await res.json()) as { enhanced?: string; error?: { message: string } };
       if (!res.ok || !json.enhanced) {
@@ -120,6 +143,8 @@ export function Studio({ mode }: { mode: Kind }) {
         return;
       }
       setPrompt(json.enhanced);
+    } catch {
+      setError("Could not enhance that prompt. Try again.");
     } finally {
       setBusy(false);
     }
@@ -208,6 +233,8 @@ export function Studio({ mode }: { mode: Kind }) {
           cost,
           createdAt: Date.now(),
           status: "ready",
+          outputUrl: mode === "image" ? outputUrl : clips?.[0],
+          outputUrls: clips,
         });
       };
       if (json.status === "ready") {
@@ -606,6 +633,7 @@ function ClipPlaylist({
   poster: string;
 }) {
   const [index, setIndex] = useState(0);
+  const [playError, setPlayError] = useState<string | null>(null);
   const src = clips[index] ?? clips[0];
   return (
     <div>
@@ -613,13 +641,18 @@ function ClipPlaylist({
         key={src}
         className="w-full rounded-2xl bg-ink"
         controls
+        playsInline
+        preload="auto"
         autoPlay={index > 0}
         poster={index === 0 ? poster : undefined}
         src={src}
+        onError={() => setPlayError("The clip loaded, then the player lost the file. Try Download.")}
+        onPlaying={() => setPlayError(null)}
         onEnded={() => {
           if (index + 1 < clips.length) setIndex(index + 1);
         }}
       />
+      {playError ? <p className="mt-2 text-sm text-danger">{playError}</p> : null}
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <a
           className="rounded-full bg-ink px-4 py-2 text-sm text-bg-elevated"
