@@ -424,9 +424,9 @@ export function Studio({ mode }: { mode: Kind }) {
                 <span className="mt-0.5 block font-mono text-xs text-fg-subtle">
                   {m.vendor}
                   {m.credits.per === "second"
-                    ? ` · ${m.credits.rate} cr/s`
-                    : ` · ${sample} cr`}
-                  {m.capabilities.audio ? " · audio" : ""}
+                    ? `, ${m.credits.rate} cr/s`
+                    : `, ${sample} cr`}
+                  {m.capabilities.audio ? ", audio" : ""}
                 </span>
               </button>
             );
@@ -486,7 +486,7 @@ export function Studio({ mode }: { mode: Kind }) {
         {mode === "video" ? (
           <>
             <p className="mt-4 text-xs font-medium tracking-wide text-fg-subtle uppercase">
-              Length · {durationSec}s · max {MAX_VIDEO_SEC}s
+              Length {durationSec}s, max {MAX_VIDEO_SEC}s
             </p>
             <div className="mt-2 flex items-center gap-3">
               <input
@@ -548,8 +548,8 @@ export function Studio({ mode }: { mode: Kind }) {
               (beat) => (
                 <label key={beat.index} className="mt-3 block">
                   <span className="font-mono text-[11px] text-accent">
-                    {beat.index + 1} · {beat.startSec}–{beat.endSec}s
-                    {beat.contentSec < beat.veoSec ? " · trim" : ""}
+                    {beat.index + 1} {beat.startSec} to {beat.endSec}s
+                    {beat.contentSec < beat.veoSec ? ", trim" : ""}
                   </span>
                   <textarea
                     className={`${field} mt-1 min-h-16 resize-y text-sm`}
@@ -600,13 +600,13 @@ export function Studio({ mode }: { mode: Kind }) {
           Cost {cost} cr
           {mode === "video"
             ? generatedSeconds(durationSec) === durationSec
-              ? ` · ${durationSec}s`
-              : ` · ${generatedSeconds(durationSec)}s generated · ${durationSec}s delivered`
+              ? `, ${durationSec}s`
+              : `, ${generatedSeconds(durationSec)}s generated, ${durationSec}s delivered`
             : ""}
-          {" · "}
+          {", "}
           {unlimitedCredits()
             ? "unlimited"
-            : `balance ${formatCredits(balance)}${canAfford ? ` → ${balance - cost}` : " · not enough"}`}
+            : `balance ${formatCredits(balance)}${canAfford ? ` → ${balance - cost}` : ", not enough"}`}
         </div>
         {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
         <Button
@@ -619,7 +619,7 @@ export function Studio({ mode }: { mode: Kind }) {
           {busy ? "Working…" : "Generate"}
         </Button>
         <p className="mt-2 text-center font-mono text-[11px] text-fg-subtle">
-          ⌘↵ · Google AI Studio
+          ⌘↵ Google AI Studio
         </p>
       </section>
 
@@ -660,7 +660,7 @@ export function Studio({ mode }: { mode: Kind }) {
                     ? "Rendered with Veo."
                     : "Rendered with Gemini Flash Image."
                   : mode === "video"
-                    ? "Sample clip — live Veo was not used for this one."
+                    ? "Sample clip. Live Veo was not used for this one."
                     : "Still rendered from your prompt."}
               </p>
             </div>

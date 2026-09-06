@@ -44,7 +44,7 @@ export function googleLive(model: Model) {
 export function friendlyVeoMessage(raw?: string) {
   const text = raw?.trim() ?? "";
   if (/internal server/i.test(text)) {
-    return "Veo failed on Google's side (quota or a temporary outage). The first clip never finished — wait a minute and try again.";
+    return "Veo failed on Google's side (quota or a temporary outage). The first clip never finished. Wait a minute and try again.";
   }
   return text || "Veo failed.";
 }

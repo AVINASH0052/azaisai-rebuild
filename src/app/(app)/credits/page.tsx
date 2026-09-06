@@ -27,7 +27,7 @@ export default function CreditsPage() {
         <p className="mt-3 font-mono text-4xl text-fg">{formatCredits(balance)}</p>
         <p className="mt-1 text-sm text-fg-muted">
           {unlimitedCredits()
-            ? "Test user — credits are not limited."
+            ? "Test user. Credits are not limited."
             : "A 6s Veo Fast clip costs 9 credits."}
         </p>
       </div>

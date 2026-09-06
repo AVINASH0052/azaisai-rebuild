@@ -29,7 +29,7 @@ export default function HistoryPage() {
                 <div>
                   <p className="text-fg">{job.prompt}</p>
                   <p className="font-mono text-xs text-fg-subtle">
-                    {job.modelLabel} · {job.kind} · {job.aspect} · {job.cost} cr
+                    {job.modelLabel}, {job.kind}, {job.aspect}, {job.cost} cr
                   </p>
                 </div>
                 <span className="font-mono text-xs text-accent uppercase">
