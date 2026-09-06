@@ -2,6 +2,21 @@
 
 export const TEST_BYPASS_EMAIL = "dev@azaisai.test";
 export const TEST_BYPASS_COOKIE = "azai_test_bypass";
+
+export function isAuthCookieName(name: string) {
+  return name === TEST_BYPASS_COOKIE || name.startsWith("sb-");
+}
+
+export function expireAuthCookie() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: 0,
+    expires: new Date(0),
+  };
+}
 /** Enough for several 6s Veo Fast clips (9 cr each: 6s × 1.5). */
 export const TEST_BYPASS_CREDITS = 80;
 

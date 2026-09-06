@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   TEST_BYPASS_COOKIE,
+  expireAuthCookie,
   signBypassCookie,
   testBypassEnabled,
   testBypassSecret,
@@ -33,6 +34,6 @@ export async function POST() {
 
 export async function DELETE() {
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(TEST_BYPASS_COOKIE, "", { ...cookieOpts, maxAge: 0 });
+  res.cookies.set(TEST_BYPASS_COOKIE, "", expireAuthCookie());
   return res;
 }

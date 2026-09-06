@@ -73,4 +73,11 @@ assert.equal(
 );
 assert.equal(afterMfaPath("/auth/mfa"), "/admin");
 assert.equal(afterMfaPath("/studio/video"), "/studio/video");
+
+function isAuthCookieName(name) {
+  return name === "azai_test_bypass" || name.startsWith("sb-");
+}
+assert.equal(isAuthCookieName("azai_test_bypass"), true);
+assert.equal(isAuthCookieName("sb-wdlq-auth-token"), true);
+assert.equal(isAuthCookieName("theme"), false);
 console.log("post-login.selftest ok");
