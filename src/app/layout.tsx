@@ -22,6 +22,9 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Hearth",
   description: "Ten seconds means ten. Live Veo and Gemini from Google AI Studio.",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({
