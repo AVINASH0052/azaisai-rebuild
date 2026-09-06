@@ -124,7 +124,7 @@ export async function POST(req: Request) {
           id: body.id,
           status: "ready",
           progress: 100,
-          stage: outputUrls.length > 1 ? "Ready · clips play in order" : "Ready",
+          stage: outputUrls.length > 1 ? "Stitching into one video" : "Ready",
           outputUrl: outputUrls[0],
           outputUrls,
           videoUris: next.videoUris,

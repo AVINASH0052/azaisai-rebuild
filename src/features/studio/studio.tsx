@@ -23,6 +23,7 @@ import {
 } from "./credits-store";
 import { loadJobs, saveJob } from "./local-jobs";
 import { captureLastFrame } from "./last-frame";
+import { imageFilename, stitchClips, stitchFilename } from "./stitch";
 
 const field =
   "w-full rounded-xl border border-border bg-bg-elevated px-3 py-2.5 text-fg shadow-sm outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/40";
@@ -52,6 +53,7 @@ export function Studio({ mode }: { mode: Kind }) {
     videos?: string[];
     clipSecs?: number[];
     live?: boolean;
+    downloadName?: string;
   } | null>(null);
   const [balance, setBalance] = useState(5);
   const [beats, setBeats] = useState<Beat[]>([]);
@@ -78,6 +80,7 @@ export function Studio({ mode }: { mode: Kind }) {
   }, [durationSec]);
 
   useEffect(() => {
+    let cancelled = false;
     const last = loadJobs().find(
       (j) => j.kind === mode && j.status === "ready" && (j.outputUrls?.length || j.outputUrl),
     );
@@ -86,18 +89,37 @@ export function Studio({ mode }: { mode: Kind }) {
       last.kind === "video"
         ? (last.outputUrls?.length ? last.outputUrls : last.outputUrl ? [last.outputUrl] : undefined)
         : undefined;
-    setResult({
-      id: last.id,
-      kind: last.kind,
-      poster:
-        last.kind === "image"
-          ? (last.outputUrl ?? assetUrl(last.kind, last.prompt, last.aspect, last.modelId))
-          : assetUrl(last.kind, last.prompt, last.aspect, last.modelId),
-      video: clips?.[0],
-      videos: clips,
-      clipSecs: last.clipSecs,
-      live: last.id.startsWith("g_"),
-    });
+    const poster =
+      last.kind === "image"
+        ? (last.outputUrl ?? assetUrl(last.kind, last.prompt, last.aspect, last.modelId))
+        : assetUrl(last.kind, last.prompt, last.aspect, last.modelId);
+    const show = (videos?: string[], extra?: { clipSecs?: number[]; downloadName?: string }) => {
+      if (cancelled) return;
+      setResult({
+        id: last.id,
+        kind: last.kind,
+        poster,
+        video: videos?.[0],
+        videos,
+        clipSecs: extra?.clipSecs ?? last.clipSecs,
+        live: last.id.startsWith("g_"),
+        downloadName:
+          extra?.downloadName ??
+          (last.kind === "image" ? imageFilename(last.id, poster) : undefined),
+      });
+    };
+    if (clips && clips.length > 1) {
+      void stitchClips(clips, last.clipSecs)
+        .then((one) => show([one.url], { clipSecs: undefined, downloadName: stitchFilename(last.id, one.mime) }))
+        .catch(() => show(clips));
+    } else {
+      show(clips, {
+        downloadName: last.kind === "image" ? imageFilename(last.id, poster) : undefined,
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
   }, [mode]);
 
   const cost = useMemo(
@@ -209,21 +231,39 @@ export function Studio({ mode }: { mode: Kind }) {
         createdAt: Date.now(),
         status: "queued",
       });
-      const finish = (outputUrl?: string, outputUrls?: string[]) => {
-        const clips =
+      const finish = async (outputUrl?: string, outputUrls?: string[]) => {
+        const rawClips =
           mode === "video"
-            ? (outputUrls?.length ? outputUrls : [outputUrl ?? "/mock/flower.mp4"])
+            ? outputUrl && outputUrls && outputUrls.length > 1 && !outputUrl.includes("op=")
+              ? [outputUrl]
+              : (outputUrls?.length ? outputUrls : [outputUrl ?? "/mock/flower.mp4"])
             : undefined;
-        const clipSecs =
+        const plannedSecs =
           mode === "video"
             ? (beats.length === segments
                 ? beats.map((b) => b.contentSec)
                 : fallbackBeats(prompt.trim(), durationSec).map((b) => b.contentSec))
             : undefined;
+        let clips = rawClips;
+        let clipSecs = plannedSecs;
+        let downloadName: string | undefined;
+        if (clips && clips.length > 1) {
+          setStage("Stitching into one video");
+          setProgress(96);
+          try {
+            const one = await stitchClips(clips, plannedSecs);
+            clips = [one.url];
+            clipSecs = undefined;
+            downloadName = stitchFilename(jobId, one.mime);
+          } catch {
+            // keep the separate clips if the browser cannot remux
+          }
+        }
         const poster =
           mode === "image"
             ? (outputUrl ?? assetUrl(mode, prompt.trim(), aspect, model.id))
             : assetUrl(mode, prompt.trim(), aspect, model.id);
+        if (mode === "image") downloadName = imageFilename(jobId, poster);
         setResult({
           id: jobId,
           kind: mode,
@@ -232,6 +272,7 @@ export function Studio({ mode }: { mode: Kind }) {
           videos: clips,
           clipSecs,
           live,
+          downloadName,
         });
         saveJob({
           id: jobId,
@@ -243,13 +284,13 @@ export function Studio({ mode }: { mode: Kind }) {
           cost,
           createdAt: Date.now(),
           status: "ready",
-          outputUrl: mode === "image" ? outputUrl : clips?.[0],
-          outputUrls: clips,
-          clipSecs,
+          outputUrl: mode === "image" ? outputUrl : rawClips?.[0],
+          outputUrls: rawClips,
+          clipSecs: plannedSecs,
         });
       };
       if (json.status === "ready") {
-        finish(json.outputUrl, json.outputUrls);
+        await finish(json.outputUrl, json.outputUrls);
         return;
       }
       if (live && !json.operation) {
@@ -330,7 +371,7 @@ export function Studio({ mode }: { mode: Kind }) {
           continue;
         }
         if (body.status === "ready") {
-          finish(body.outputUrl, body.outputUrls);
+          await finish(body.outputUrl, body.outputUrls);
           break;
         }
         if (body.status === "failed") {
@@ -501,7 +542,7 @@ export function Studio({ mode }: { mode: Kind }) {
             </div>
             <p className="mt-1 text-xs text-fg-subtle">
               Each beat starts from the last frame of the one before it. Clips
-              play in order.
+              are stitched into one video before they play.
             </p>
             {(beats.length ? beats : fallbackBeats(prompt.trim() || "…", durationSec)).map(
               (beat) => (
@@ -592,21 +633,31 @@ export function Studio({ mode }: { mode: Kind }) {
                   clips={result.videos}
                   clipSecs={result.clipSecs}
                   poster={result.poster}
+                  downloadName={result.downloadName}
                 />
               ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={result.poster}
-                  alt={prompt}
-                  className="mx-auto max-h-[70vh] w-full rounded-2xl object-contain"
-                />
+                <div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={result.poster}
+                    alt={prompt}
+                    className="mx-auto max-h-[70vh] w-full rounded-2xl object-contain"
+                  />
+                  <div className="mt-4">
+                    <a
+                      className="rounded-full bg-ink px-4 py-2 text-sm text-bg-elevated"
+                      href={result.poster}
+                      download={result.downloadName ?? imageFilename(result.id, result.poster)}
+                    >
+                      Download
+                    </a>
+                  </div>
+                </div>
               )}
               <p className="mt-4 text-sm text-fg-muted">
                 {result.live
                   ? mode === "video"
-                    ? result.videos && result.videos.length > 1
-                      ? "Veo clips chained from the last frame. They play in order."
-                      : "Rendered with Veo."
+                    ? "Rendered with Veo."
                     : "Rendered with Gemini Flash Image."
                   : mode === "video"
                     ? "Sample clip while the live provider is mocked."
@@ -642,11 +693,13 @@ function ClipPlaylist({
   clips,
   clipSecs,
   poster,
+  downloadName,
 }: {
   id: string;
   clips: string[];
   clipSecs?: number[];
   poster: string;
+  downloadName?: string;
 }) {
   const [index, setIndex] = useState(0);
   const [playError, setPlayError] = useState<string | null>(null);
@@ -682,7 +735,7 @@ function ClipPlaylist({
         <a
           className="rounded-full bg-ink px-4 py-2 text-sm text-bg-elevated"
           href={src}
-          download={`hearth-${id}-${index + 1}.mp4`}
+          download={downloadName ?? `hearth-${id}-${index + 1}.mp4`}
         >
           Download
         </a>
