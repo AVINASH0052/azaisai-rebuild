@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "capture:test": "node scripts/agent-capture.mjs --self-test",
     "schema:test": "node scripts/schema.selftest.mjs",
-    "quote:test": "node scripts/quote.selftest.mjs && node scripts/policy.selftest.mjs && node scripts/return-url.selftest.mjs",
+    "quote:test": "node scripts/quote.selftest.mjs && node scripts/policy.selftest.mjs && node scripts/return-url.selftest.mjs && node scripts/post-login.selftest.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:apply": "node scripts/db-apply.mjs",

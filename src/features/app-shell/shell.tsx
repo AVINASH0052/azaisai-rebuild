@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { sessionBalance } from "@/services/credits";
 import { CreditChip } from "@/features/studio/credit-chip";
+import { AdminPlaneSwitch } from "./admin-plane-switch";
 import { ModeSwitch } from "./mode-switch";
 import { NavLinks } from "./nav-links";
 import { SignOutButton } from "./sign-out-button";
@@ -24,6 +25,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           AzaisAI
         </Link>
         <ModeSwitch />
+        <AdminPlaneSwitch />
         <div className="ml-auto flex items-center gap-4">
           <CreditChip fallback={balance} />
           <SignOutButton />

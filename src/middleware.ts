@@ -1,6 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { safeReturnUrl } from "@/lib/auth/return-url";
 import {
   TEST_BYPASS_COOKIE,
   isValidBypassCookie,
@@ -54,17 +53,22 @@ export async function middleware(request: NextRequest) {
     ? true
     : (await supabase.auth.getUser()).data.user;
 
-  if (!user && isProtected(pathname)) {
+  if (!user && (isProtected(pathname) || pathname === "/auth/mfa")) {
     const login = request.nextUrl.clone();
     login.pathname = "/auth/login";
     login.search = `?returnUrl=${encodeURIComponent(pathname + search)}`;
     return NextResponse.redirect(login);
   }
 
-  if (user && pathname.startsWith("/auth/") && pathname !== "/auth/callback") {
+  if (user && pathname.startsWith("/auth/")) {
+    if (pathname === "/auth/callback" || pathname === "/auth/mfa") {
+      return response;
+    }
     const explicit = request.nextUrl.searchParams.get("returnUrl");
-    const dest = safeReturnUrl(explicit);
-    return NextResponse.redirect(new URL(dest, request.url));
+    const next = request.nextUrl.clone();
+    next.pathname = "/auth/callback";
+    next.search = explicit ? `?returnUrl=${encodeURIComponent(explicit)}` : "";
+    return NextResponse.redirect(next);
   }
 
   return response;

@@ -4,6 +4,7 @@ const ALLOWED = [
   /^\/credits(\/|$)/,
   /^\/settings(\/|$)/,
   /^\/admin(\/|$)/,
+  /^\/auth\/mfa(\/|$)/,
   /^\/g\/[A-Za-z0-9_-]+$/,
 ];
 

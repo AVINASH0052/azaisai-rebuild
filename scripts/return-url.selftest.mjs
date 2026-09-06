@@ -6,6 +6,7 @@ const ALLOWED = [
   /^\/credits(\/|$)/,
   /^\/settings(\/|$)/,
   /^\/admin(\/|$)/,
+  /^\/auth\/mfa(\/|$)/,
   /^\/g\/[A-Za-z0-9_-]+$/,
 ];
 
@@ -32,6 +33,8 @@ function safeReturnUrl(value) {
 assert.equal(safeReturnUrl(null), "/studio/video");
 assert.equal(safeReturnUrl("/studio/image"), "/studio/image");
 assert.equal(safeReturnUrl("/admin"), "/admin");
+assert.equal(safeReturnUrl("/auth/mfa"), "/auth/mfa");
+assert.equal(parseReturnUrl("/auth/login"), null);
 assert.equal(safeReturnUrl("//evil.tld"), "/studio/video");
 assert.equal(safeReturnUrl("https://evil.tld"), "/studio/video");
 assert.equal(safeReturnUrl("/%2F%2Fevil.tld"), "/studio/video");

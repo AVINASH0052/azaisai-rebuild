@@ -16,9 +16,12 @@ export default function Home() {
         Sign in, spend credits, wait for a real state machine, download the
         file. The original loop, rebuilt on a ledger and a job queue.
       </p>
-      <div className="mt-8">
+      <div className="mt-8 flex flex-wrap gap-3">
         <Button asChild size="lg" className="h-11 px-5">
-          <Link href="/auth/login">Sign in with email</Link>
+          <Link href="/auth/login">Sign in</Link>
+        </Button>
+        <Button asChild size="lg" variant="outline" className="h-11 px-5">
+          <Link href="/auth/login">Sign up</Link>
         </Button>
       </div>
       <p className="mt-12 font-mono text-xs text-fg-subtle">

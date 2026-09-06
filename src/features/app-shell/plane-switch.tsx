@@ -3,32 +3,30 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export function ModeSwitch() {
+export function PlaneSwitch() {
   const path = usePathname();
-  if (path.startsWith("/admin")) return null;
-  const video = path.startsWith("/studio/video");
-  const image = path.startsWith("/studio/image");
+  const admin = path.startsWith("/admin");
   return (
     <nav className="flex items-center rounded-full bg-bg-inset p-0.5 text-sm">
       <Link
         href="/studio/video"
         className={
-          video
+          !admin
             ? "rounded-full bg-bg-elevated px-3 py-1 text-fg shadow-sm"
             : "rounded-full px-3 py-1 text-fg-muted hover:text-fg"
         }
       >
-        Video
+        Studio
       </Link>
       <Link
-        href="/studio/image"
+        href="/admin"
         className={
-          image
+          admin
             ? "rounded-full bg-bg-elevated px-3 py-1 text-fg shadow-sm"
             : "rounded-full px-3 py-1 text-fg-muted hover:text-fg"
         }
       >
-        Image
+        Admin
       </Link>
     </nav>
   );

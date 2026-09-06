@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { OtpForm } from "@/features/auth/otp-form";
 import { safeReturnUrl } from "@/lib/auth/return-url";
 
@@ -17,20 +16,11 @@ export default async function LoginPage({
         </p>
         <h1 className="mt-3 text-3xl text-fg">Sign in</h1>
         <p className="mt-2 text-sm text-fg-muted">
-          We&apos;ll email you a sign-in link. No password.
+          Enter your email. We&apos;ll send a 6-digit code.
         </p>
         <div className="mt-8">
-          <OtpForm mode="login" returnUrl={dest} />
+          <OtpForm returnUrl={dest} />
         </div>
-        <p className="mt-6 text-sm text-fg-subtle">
-          New here?{" "}
-          <Link
-            className="text-fg-muted underline-offset-4 hover:text-fg hover:underline"
-            href={`/auth/signup?returnUrl=${encodeURIComponent(dest)}`}
-          >
-            Create an account
-          </Link>
-        </p>
       </div>
     </main>
   );
