@@ -31,7 +31,7 @@ export function OtpForm({
       <p className="text-sm text-fg-muted">
         Auth is not configured yet. Set{" "}
         <code className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-        <code className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>.
+        <code className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code>.
       </p>
     );
   }

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createDb } from "@/db";
 import { env } from "@/lib/env";
 import { requestId } from "@/lib/request-id";
+import { supabaseConfigured } from "@/lib/supabase/config";
 
 type Check = "ok" | "unconfigured" | "error";
 
@@ -26,7 +27,7 @@ export async function GET(req: Request) {
   const id = requestId(req.headers.get("x-request-id"));
   const checks = {
     db: await dbCheck(),
-    storage: check(Boolean(env.NEXT_PUBLIC_SUPABASE_URL)),
+    storage: check(supabaseConfigured()),
     provider: check(env.PROVIDER_MODE === "mock" || Boolean(env.FAL_KEY)),
     stripe: check(Boolean(env.STRIPE_SECRET_KEY)),
   };

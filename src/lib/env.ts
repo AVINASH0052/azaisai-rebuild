@@ -11,6 +11,10 @@ const schema = z.object({
   PROVIDER_MODE: z.enum(["mock", "auto", "live"]).default("mock"),
   DATABASE_URL: z.preprocess(emptyToUndef, z.string().url().optional()),
   NEXT_PUBLIC_SUPABASE_URL: z.preprocess(emptyToUndef, z.string().url().optional()),
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.preprocess(
+    emptyToUndef,
+    z.string().min(1).optional(),
+  ),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.preprocess(emptyToUndef, z.string().min(1).optional()),
   SUPABASE_SERVICE_ROLE_KEY: z.preprocess(emptyToUndef, z.string().min(1).optional()),
   FAL_KEY: z.preprocess(emptyToUndef, z.string().min(1).optional()),
@@ -33,6 +37,8 @@ export const env = schema.parse({
   PROVIDER_MODE: process.env.PROVIDER_MODE,
   DATABASE_URL: process.env.DATABASE_URL,
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   FAL_KEY: process.env.FAL_KEY,

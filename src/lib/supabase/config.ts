@@ -1,5 +1,3 @@
-import { env } from "@/lib/env";
+import { supabaseConfigured } from "./keys";
 
-export function supabaseConfigured() {
-  return Boolean(env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-}
+export { supabaseConfigured, supabasePublicKey, supabaseUrl } from "./keys";
