@@ -61,7 +61,11 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && pathname.startsWith("/auth/")) {
-    if (pathname === "/auth/callback" || pathname === "/auth/mfa") {
+    if (
+      pathname === "/auth/callback" ||
+      pathname === "/auth/mfa" ||
+      pathname === "/auth/update-password"
+    ) {
       return response;
     }
     const explicit = request.nextUrl.searchParams.get("returnUrl");
