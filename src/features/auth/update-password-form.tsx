@@ -37,7 +37,7 @@ export function UpdatePasswordForm() {
             const supabase = createBrowserSupabase();
             const { error: err } = await supabase.auth.updateUser({ password });
             if (err) {
-              setError(friendlyPasswordError(err.message));
+              setError(friendlyPasswordError(err.message, err.code));
               return;
             }
             router.replace("/auth/callback");

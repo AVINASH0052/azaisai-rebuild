@@ -19,8 +19,19 @@ export function alreadyRegistered(user: { identities?: { id?: string }[] | null 
   return Boolean(user && (user.identities?.length ?? 0) === 0);
 }
 
-export function friendlyPasswordError(message: string) {
+export function isEmailSendLimit(message: string, code?: string) {
   const m = message.toLowerCase();
+  const c = (code ?? "").toLowerCase();
+  return (
+    c === "over_email_send_rate_limit" ||
+    m.includes("email rate limit") ||
+    m.includes("over_email_send_rate_limit")
+  );
+}
+
+export function friendlyPasswordError(message: string, code?: string) {
+  const m = message.toLowerCase();
+  const c = (code ?? "").toLowerCase();
   if (m.includes("not confirmed")) {
     return "Confirm your email first. Check your inbox for the confirmation link.";
   }
@@ -30,7 +41,10 @@ export function friendlyPasswordError(message: string) {
   if (m.includes("already registered") || m.includes("already been registered")) {
     return "That email already has an account. Sign in instead.";
   }
-  if (m.includes("rate limit")) {
+  if (isEmailSendLimit(message, code)) {
+    return "A confirmation email was already sent. Check your inbox, or wait a minute.";
+  }
+  if (c === "over_request_rate_limit" || m.includes("rate limit")) {
     return "Too many tries. Wait a minute and try again.";
   }
   if (m.includes("password should") || m.includes("password is")) {

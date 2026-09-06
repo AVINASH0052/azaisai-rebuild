@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   alreadyRegistered,
   authHref,
   friendlyPasswordError,
+  isEmailSendLimit,
   MIN_PASSWORD,
   normalizeEmail,
   passwordReady,
@@ -32,6 +33,7 @@ export function SignUpForm({
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const inFlight = useRef(false);
 
   const loginHref = authHref("/auth/login", {
     email: normalizeEmail(email),
@@ -69,11 +71,13 @@ export function SignUpForm({
   }
 
   async function signUp() {
+    if (inFlight.current) return;
     const mismatch = passwordReady(password, confirm);
     if (mismatch) {
       setError(mismatch);
       return;
     }
+    inFlight.current = true;
     setPending(true);
     setError(null);
     try {
@@ -86,7 +90,12 @@ export function SignUpForm({
         },
       });
       if (err) {
-        setError(friendlyPasswordError(err.message));
+        // First click can fire twice; the second hits Supabase's per-email send cap.
+        if (isEmailSendLimit(err.message, err.code)) {
+          setSent(true);
+          return;
+        }
+        setError(friendlyPasswordError(err.message, err.code));
         return;
       }
       if (alreadyRegistered(data.user)) {
@@ -98,6 +107,7 @@ export function SignUpForm({
       }
       setSent(true);
     } finally {
+      inFlight.current = false;
       setPending(false);
     }
   }

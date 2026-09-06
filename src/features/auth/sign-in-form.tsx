@@ -104,7 +104,7 @@ export function SignInForm({
         password,
       });
       if (err) {
-        setError(friendlyPasswordError(err.message));
+        setError(friendlyPasswordError(err.message, err.code));
         return;
       }
       router.replace(`/auth/callback?returnUrl=${encodeURIComponent(dest)}`);
@@ -124,7 +124,7 @@ export function SignInForm({
         { redirectTo: `${window.location.origin}/auth/callback?reset=1` },
       );
       if (err) {
-        setError(friendlyPasswordError(err.message));
+        setError(friendlyPasswordError(err.message, err.code));
         return;
       }
       setStep("reset");

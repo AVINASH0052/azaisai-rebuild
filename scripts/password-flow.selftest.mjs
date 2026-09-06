@@ -48,4 +48,37 @@ assert.equal(callbackAfterExchange({ confirmed: null, reset: null, type: "signup
 assert.equal(callbackAfterExchange({ confirmed: null, reset: "1", type: null }), "reset");
 assert.equal(callbackAfterExchange({ confirmed: null, reset: null, type: "recovery" }), "reset");
 assert.equal(callbackAfterExchange({ confirmed: null, reset: null, type: "magiclink" }), "session");
+
+function isEmailSendLimit(message, code) {
+  const m = message.toLowerCase();
+  const c = (code ?? "").toLowerCase();
+  return (
+    c === "over_email_send_rate_limit" ||
+    m.includes("email rate limit") ||
+    m.includes("over_email_send_rate_limit")
+  );
+}
+
+function friendlyPasswordError(message, code) {
+  const m = message.toLowerCase();
+  const c = (code ?? "").toLowerCase();
+  if (isEmailSendLimit(message, code)) {
+    return "A confirmation email was already sent. Check your inbox, or wait a minute.";
+  }
+  if (c === "over_request_rate_limit" || m.includes("rate limit")) {
+    return "Too many tries. Wait a minute and try again.";
+  }
+  return "Something went wrong. Try again.";
+}
+
+assert.equal(isEmailSendLimit("email rate limit exceeded"), true);
+assert.equal(isEmailSendLimit("Request rate limit reached", "over_request_rate_limit"), false);
+assert.equal(
+  friendlyPasswordError("email rate limit exceeded"),
+  "A confirmation email was already sent. Check your inbox, or wait a minute.",
+);
+assert.equal(
+  friendlyPasswordError("Request rate limit reached"),
+  "Too many tries. Wait a minute and try again.",
+);
 console.log("password-flow.selftest ok");
