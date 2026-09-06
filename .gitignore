@@ -1,0 +1,25 @@
+# dependencies & build
+node_modules/
+.next/
+out/
+dist/
+coverage/
+.turbo/
+.vercel/
+*.tsbuildinfo
+
+# secrets — never commit
+.env
+.env.*
+!.env.example
+
+# os / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# .agent-logs/ is NOT ignored. It ships with the repo.
+.agent-logs/.index.json
+.agent-logs/.capture-errors.log
+.agent-logs/.last-session

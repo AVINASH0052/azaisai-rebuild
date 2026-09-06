@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "node scripts/agent-capture.mjs session"
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "node scripts/agent-capture.mjs prompt"
+      }
+    ],
+    "afterAgentResponse": [
+      {
+        "command": "node scripts/agent-capture.mjs response"
+      }
+    ]
+  }
+}
