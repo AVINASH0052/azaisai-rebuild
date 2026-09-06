@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { env } from "@/lib/env";
 import { BRAND } from "@/lib/brand";
 import { Wordmark } from "@/features/brand/wordmark";
 
@@ -32,11 +31,8 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
       </header>
       {children}
       <footer className="border-t border-[var(--lab-line)]">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-8">
+        <div className="mx-auto flex max-w-6xl items-center px-5 py-8">
           <Wordmark className="text-lg text-[var(--lab-dim)]" />
-          <p className="font-mono text-[11px] text-[var(--lab-dim)]">
-            {env.PROVIDER_MODE} {env.NEXT_PUBLIC_GIT_SHA.slice(0, 7)}
-          </p>
         </div>
       </footer>
     </div>
