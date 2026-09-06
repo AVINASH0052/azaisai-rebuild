@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createBrowserSupabase } from "@/lib/supabase/client";
@@ -11,32 +11,30 @@ import { TEST_BYPASS_EMAIL, testBypassEnabled } from "@/lib/auth/test-bypass";
 const field =
   "w-full rounded-xl border border-border bg-bg-elevated px-3 py-2.5 text-fg shadow-sm outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/40";
 
-function digits(value: string) {
-  return value.replace(/\D/g, "").slice(0, 6);
-}
-
 function friendlyAuthError(message: string) {
   const m = message.toLowerCase();
   if (m.includes("rate limit")) {
     return "Too many emails just now. Wait a minute and try again.";
   }
   if (m.includes("expired")) {
-    return "That code expired. Request a new one.";
+    return "That link expired. Request a new one.";
   }
   if (m.includes("invalid") || m.includes("otp") || m.includes("token")) {
-    return "That code isn't right.";
+    return "That sign-in link is not valid.";
   }
   return "Something went wrong. Try again.";
+}
+
+function isTestEmail(email: string) {
+  return (
+    testBypassEnabled() && email.trim().toLowerCase() === TEST_BYPASS_EMAIL
+  );
 }
 
 export function OtpForm({ returnUrl }: { returnUrl: string }) {
   const router = useRouter();
   const dest = safeReturnUrl(returnUrl);
-  const verifying = useRef(false);
-  const [email, setEmail] = useState(
-    testBypassEnabled() ? TEST_BYPASS_EMAIL : "",
-  );
-  const [code, setCode] = useState("");
+  const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -65,11 +63,6 @@ export function OtpForm({ returnUrl }: { returnUrl: string }) {
     }, 1000);
   }
 
-  async function finish(path: string) {
-    router.replace(path);
-    router.refresh();
-  }
-
   async function bypass() {
     setPending(true);
     setError(null);
@@ -80,13 +73,14 @@ export function OtpForm({ returnUrl }: { returnUrl: string }) {
         setError(json.error ?? "Something went wrong. Try again.");
         return;
       }
-      await finish(`/auth/callback?returnUrl=${encodeURIComponent(dest)}`);
+      router.replace(`/auth/callback?returnUrl=${encodeURIComponent(dest)}`);
+      router.refresh();
     } finally {
       setPending(false);
     }
   }
 
-  async function sendCode() {
+  async function sendLink() {
     setPending(true);
     setError(null);
     try {
@@ -104,32 +98,8 @@ export function OtpForm({ returnUrl }: { returnUrl: string }) {
         return;
       }
       setSent(true);
-      setCode("");
       startCooldown();
     } finally {
-      setPending(false);
-    }
-  }
-
-  async function verify(token: string) {
-    if (verifying.current || token.length !== 6) return;
-    verifying.current = true;
-    setPending(true);
-    setError(null);
-    try {
-      const supabase = createBrowserSupabase();
-      const { error: err } = await supabase.auth.verifyOtp({
-        email,
-        token,
-        type: "email",
-      });
-      if (err) {
-        setError(friendlyAuthError(err.message));
-        return;
-      }
-      await finish(`/auth/callback?returnUrl=${encodeURIComponent(dest)}`);
-    } finally {
-      verifying.current = false;
       setPending(false);
     }
   }
@@ -139,18 +109,11 @@ export function OtpForm({ returnUrl }: { returnUrl: string }) {
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
-        if (
-          testBypassEnabled() &&
-          email.trim().toLowerCase() === TEST_BYPASS_EMAIL
-        ) {
+        if (isTestEmail(email)) {
           void bypass();
           return;
         }
-        if (sent) {
-          void verify(code);
-          return;
-        }
-        void sendCode();
+        void sendLink();
       }}
     >
       <label className="block space-y-1.5">
@@ -165,53 +128,13 @@ export function OtpForm({ returnUrl }: { returnUrl: string }) {
           onChange={(e) => setEmail(e.target.value)}
         />
       </label>
-      {sent ? (
-        <label className="block space-y-1.5">
-          <span className="text-sm text-fg-muted">6-digit code</span>
-          <input
-            className={`${field} text-center font-mono text-lg tracking-[0.4em]`}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="[0-9]{6}"
-            maxLength={6}
-            required
-            value={code}
-            autoFocus
-            onChange={(e) => {
-              const next = digits(e.target.value);
-              setCode(next);
-              if (next.length === 6) void verify(next);
-            }}
-          />
-        </label>
-      ) : null}
       {error ? <p className="text-sm text-danger">{error}</p> : null}
-      {!sent ? (
-        <>
-          <Button type="submit" size="lg" className="h-11 w-full" disabled={pending}>
-            {pending ? "Sending…" : "Send code"}
-          </Button>
-          {testBypassEnabled() ? (
-            <button
-              type="button"
-              className="w-full text-sm text-fg-muted underline-offset-4 hover:underline disabled:opacity-50"
-              disabled={pending}
-              onClick={() => void bypass()}
-            >
-              Continue as test user
-            </button>
-          ) : null}
-        </>
-      ) : (
+      {sent ? (
         <div className="space-y-3">
-          <Button
-            type="submit"
-            size="lg"
-            className="h-11 w-full"
-            disabled={pending || code.length !== 6}
-          >
-            {pending ? "Checking…" : "Continue"}
-          </Button>
+          <p className="text-sm text-fg-muted">
+            Check your email for a sign-in link. Click it to confirm and enter
+            the studio.
+          </p>
           <div className="flex items-center justify-between text-sm">
             <button
               type="button"
@@ -219,7 +142,6 @@ export function OtpForm({ returnUrl }: { returnUrl: string }) {
               disabled={pending}
               onClick={() => {
                 setSent(false);
-                setCode("");
                 setError(null);
               }}
             >
@@ -229,12 +151,16 @@ export function OtpForm({ returnUrl }: { returnUrl: string }) {
               type="button"
               className="text-fg-muted underline-offset-4 hover:underline disabled:opacity-50"
               disabled={cooldown > 0 || pending}
-              onClick={() => void sendCode()}
+              onClick={() => void sendLink()}
             >
-              {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
+              {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend link"}
             </button>
           </div>
         </div>
+      ) : (
+        <Button type="submit" size="lg" className="h-11 w-full" disabled={pending}>
+          {pending ? "Working…" : "Continue"}
+        </Button>
       )}
     </form>
   );

@@ -15,7 +15,7 @@ export default async function LoginPage({
         <Wordmark />
         <h1 className="mt-3 text-3xl text-fg">Sign in</h1>
         <p className="mt-2 text-sm text-fg-muted">
-          Enter your email. We&apos;ll send a 6-digit code.
+          Enter your email. We&apos;ll send a sign-in link.
         </p>
         <div className="mt-8">
           <OtpForm returnUrl={dest} />
