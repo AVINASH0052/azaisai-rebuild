@@ -12,6 +12,9 @@ Agent capture proof: [`CAPTURE-TEST.md`](CAPTURE-TEST.md).
 ```bash
 pnpm install
 cp .env.example .env.local
+# set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, DATABASE_URL
+pnpm db:apply
 pnpm dev
-# GET /api/health
 ```
+
+Apply `drizzle/0000_init.sql` then `supabase/policies/rls.sql` against the Supabase Postgres database (needs `auth.users`). Enable email OTP in the Auth providers panel.

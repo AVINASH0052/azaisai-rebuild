@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { env } from "@/lib/env";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
@@ -15,6 +17,11 @@ export default function Home() {
         download the file. The original loop, rebuilt on a ledger and a job
         queue.
       </p>
+      <div className="mt-8">
+        <Button asChild>
+          <Link href="/auth/login">Sign in with email</Link>
+        </Button>
+      </div>
       <p className="mt-10 font-mono text-xs text-fg-subtle">
         {env.PROVIDER_MODE} · {env.NEXT_PUBLIC_GIT_SHA.slice(0, 7)}
       </p>

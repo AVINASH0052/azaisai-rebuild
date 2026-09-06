@@ -9,10 +9,14 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "capture:test": "node scripts/agent-capture.mjs --self-test",
+    "schema:test": "node scripts/schema.selftest.mjs",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:apply": "node scripts/db-apply.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.57.4",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.2.6",
     "drizzle-orm": "^0.44.5",
