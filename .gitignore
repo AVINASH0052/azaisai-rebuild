@@ -7,6 +7,7 @@ coverage/
 .turbo/
 .vercel/
 *.tsbuildinfo
+next-env.d.ts
 
 # secrets — never commit
 .env
@@ -15,11 +16,19 @@ coverage/
 
 # os / editor
 .DS_Store
+*.pem
 *.swp
 .idea/
 .vscode/
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
 # .agent-logs/ is NOT ignored. It ships with the repo.
 .agent-logs/.index.json
 .agent-logs/.capture-errors.log
 .agent-logs/.last-session
+.vercel
