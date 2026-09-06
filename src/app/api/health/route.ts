@@ -29,6 +29,7 @@ export async function GET(req: Request) {
     db: await dbCheck(),
     storage: check(supabaseConfigured()),
     provider: check(env.PROVIDER_MODE === "mock" || Boolean(env.FAL_KEY)),
+    llm: check(Boolean(env.GOOGLE_AI_STUDIO)),
     stripe: check(Boolean(env.STRIPE_SECRET_KEY)),
   };
   const body = {
