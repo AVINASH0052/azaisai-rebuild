@@ -29,6 +29,10 @@ The assets worth attacking, in order:
 | XSS via prompt text rendered on a share page | React escaping + a strict CSP; no `dangerouslySetInnerHTML` anywhere in the codebase (lint-enforced) |
 | Worker endpoint invoked by a stranger | `CRON_SECRET` + Vercel's cron signature; both required |
 | Stolen session cookie | httpOnly, secure, sameSite=lax, short-lived access token + rotating refresh (Supabase defaults, not loosened) |
+| Admin mailbox compromise → platform takeover | Admin surfaces require `aal2` (email OTP **+** TOTP); email OTP alone reaches only the user's own product surfaces ([16](16-AUTH-AND-ROUTING.md)) |
+| Enumerating admin accounts via the login form | Sign-in behaves identically for every email — same copy, timing, errors, rate limits. The `platform_admins` lookup happens in `/auth/callback`, after code verification, never in `send-otp` |
+| Open redirect on the auth callback | `returnUrl` validated server-side: relative same-origin paths only, no protocol-relative `//host`, no encoded traversal |
+| Privilege escalation via signup | No code path from signup to `platform_admins` — not a flag, invite code, or email domain. Only the one-shot seed script and an audited superadmin action can write it |
 
 ## Authorization matrix
 
@@ -49,6 +53,14 @@ scattered `if` statements.
 
 Roles exist and are enforced from day one even though there's no UI to change them
 ([02](02-SCOPE.md) Tier 2). Retrofitting authorization is how security bugs happen.
+
+**Platform admin is a separate plane.** `platform_admins` is its own table with its own
+roles (`support | operator | superadmin`), checked by its own function, and it is never
+derived from workspace membership — otherwise every user, being the owner of their own
+personal workspace, is one bad `WHERE` clause away from being a platform operator.
+Full capability matrix and the rails on admin itself (read-only default, required
+reasons, typed confirmations, read-only time-boxed impersonation, prompts masked by
+default, no hard deletes) in [14](14-ADMIN-DASHBOARD.md) §6 and §9.
 
 **Defence in depth:** RLS in the database *and* the authorize check in the service.
 Either alone would do; both means a mistake in one is not an incident.

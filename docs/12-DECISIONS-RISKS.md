@@ -197,6 +197,47 @@ the event stream is the right substrate to feed it later.
 
 ---
 
+### ADR-012 — A resolved policy object, not limit columns
+
+**Decision.** Every limit in the product is a field on one `EffectivePolicy`, resolved
+per workspace per request by layering platform defaults → plan policy → workspace
+override, then clamping against global ceilings. Four enforcement points read it and
+nothing else reads a limit. ([14](14-ADMIN-DASHBOARD.md))
+
+**Rejected.** Limit columns on `workspaces` (`max_concurrent`, `can_use_premium`,
+`is_suspended`) — simpler, obvious, and what most products do first.
+
+**Why.** Columns work until limits need to vary by plan *and* by customer *and*
+globally during an incident. At that point the checks are scattered, they disagree, and
+nobody can answer "why is this customer throttled?" The `source` map on the resolved
+object answers that question by construction. The clamp step (rather than a plain
+merge) is what makes an incident-time global ceiling actually win over a per-customer
+override.
+
+**Consequence.** More machinery than three columns: a resolver, a cache with version
+invalidation, and a preview-diff in the admin UI because the effect of an edit isn't
+obvious from the edit. Roughly 75 minutes, taken from the prompt-enhance and Stripe
+slots.
+
+---
+
+### ADR-013 — Platform admin is a separate authz plane
+
+**Decision.** `platform_admins` is its own table with its own roles, never derived from
+`workspace_members`.
+
+**Rejected.** An `admin` value on the existing workspace role enum.
+
+**Why.** Every user is the owner of their own personal workspace ([ADR-008](#adr-008--workspace-scoped-everything-from-commit-one)).
+If platform admin were a workspace role, the distance between "owner of my own
+workspace" and "operator of the platform" is one mistaken `WHERE` clause. Separate
+table, separate function, separate RLS, no derivation.
+
+**Consequence.** A second authz path to maintain and test. Worth it — this is the
+failure mode that turns a bug into a breach.
+
+---
+
 ## Risk register
 
 | # | Risk | L | I | Mitigation | Trigger → action |
@@ -214,6 +255,9 @@ the event stream is the right substrate to feed it later.
 | R11 | Localhost works, production build fails at hour 11 | M | H | Deploy at H1; every commit deploys; production `/api/health` checked at each checkpoint | Red health → fix before continuing |
 | R12 | Walkthrough runs over 5 minutes | H | M | Scripted to 4:30 with timed beats; rehearsed once; the E2E test is the script | Over on take 1 → cut the architecture beat to 15s |
 | R13 | Authenticated flows of the original never observed, so a detail is wrong | M | L | Structure derived from the shipped bundle (high confidence on contracts); the seven open questions in [01](01-PRODUCT-TEARDOWN.md) §8 don't gate anything | Demo account provided → 10-min pass, adjust history/credits screens |
+| R14 | Admin control plane (+75 min) pushes the schedule past 12h | **H** | M | Cut order re-ranked so admin Tier A outranks prompt-enhance and Stripe; Tier B/C explicitly deferred; the H11–H12 buffer is knowingly spent ([11](11-DELIVERY-PLAN.md)) | Behind at H6.5 → fire cuts 1 and 2 immediately, not at H10 |
+| R15 | A limits bug locks legitimate users out of a live demo | M | H | Every limit fails **open** on resolver error (log + platform defaults, never deny); integration test asserts a resolver exception still permits a free-plan generation; global clamps are one DB row to release | Any lockout report → release the clamp first, diagnose second |
+| R16 | An admin mis-set makes a customer's state unexplainable | L | M | `source` map on the resolved policy, required `reason` on every override, `before`/`after` diff on every `admin_actions` row, `expires_at` on overrides so temporary stays temporary | — |
 
 ## Assumptions
 

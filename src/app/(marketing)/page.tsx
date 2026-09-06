@@ -8,21 +8,20 @@ export default function Home() {
       <p className="font-mono text-xs tracking-[0.18em] text-accent uppercase">
         AzaisAI
       </p>
-      <h1 className="mt-4 text-4xl tracking-tight text-fg sm:text-5xl">
+      <h1 className="mt-5 text-4xl text-fg sm:text-5xl">
         Generate video and images.
-        <span className="block text-fg-muted">Watch honest progress.</span>
+        <span className="mt-2 block text-fg-muted">Watch honest progress.</span>
       </h1>
       <p className="mt-6 max-w-xl text-lg leading-relaxed text-fg-muted">
-        Sign in with an email code, spend credits, wait for a real state machine,
-        download the file. The original loop, rebuilt on a ledger and a job
-        queue.
+        Sign in, spend credits, wait for a real state machine, download the
+        file. The original loop, rebuilt on a ledger and a job queue.
       </p>
       <div className="mt-8">
-        <Button asChild>
+        <Button asChild size="lg" className="h-11 px-5">
           <Link href="/auth/login">Sign in with email</Link>
         </Button>
       </div>
-      <p className="mt-10 font-mono text-xs text-fg-subtle">
+      <p className="mt-12 font-mono text-xs text-fg-subtle">
         {env.PROVIDER_MODE} · {env.NEXT_PUBLIC_GIT_SHA.slice(0, 7)}
       </p>
     </main>

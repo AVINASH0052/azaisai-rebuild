@@ -13,6 +13,7 @@ export const log = pino({
       "*.key",
       "*.secret",
       "SERVICE_ROLE",
+      "AUTH_TEST_PASSWORD",
       "GOOGLE_AI_STUDIO",
       "google_ai_studio",
     ],

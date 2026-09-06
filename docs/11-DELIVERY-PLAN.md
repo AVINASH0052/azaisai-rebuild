@@ -12,8 +12,10 @@ submission by hour 11. Anything after that is buffer, not plan.
    result) working early beats a perfect schema and no UI.
 3. **Mock provider before real provider.** It de-risks the demo and makes the test
    loop milliseconds instead of minutes.
-4. **Commit at every checkpoint**, code + `.agent-logs/` together. The commit graph is
-   part of the submission ([00](00-AGENT-CAPTURE.md)).
+4. **Commit at every checkpoint**, code + `.agent-logs/` together, always as
+   `git add -A && git commit && git push` — directly to `main`, never squashed.
+   The commit graph is part of the submission ([00](00-AGENT-CAPTURE.md),
+   [15](15-GIT-WORKFLOW.md)).
 5. **Every hour has a demoable artifact.** If we stopped at any hour boundary, there'd
    be something to show.
 
@@ -21,7 +23,9 @@ submission by hour 11. Anything after that is buffer, not plan.
 
 ## H0 — Capture gate (blocking) · 30 min
 
-- [ ] `git init`, public GitHub repo, `main`
+- [ ] `git init`, public GitHub repo, `main` as the working branch
+      (trunk-based, no branch protection — [15](15-GIT-WORKFLOW.md))
+- [ ] husky pre-commit (typecheck + lint + gitleaks on staged) and pre-push (unit)
 - [ ] `scripts/agent-capture.mjs` + `.claude/settings.json` hooks
 - [ ] Canary #1 in this session → verify PROMPT + RESPONSE in `.agent-logs/`
 - [ ] Canary #2 in a **new** session → verify a second file lands
@@ -54,6 +58,9 @@ submission by hour 11. Anything after that is buffer, not plan.
 - [ ] Supabase email OTP; `/auth/login`, `/auth/signup`, `/auth/callback`
 - [ ] Signup trigger: create personal workspace + membership + 5-credit welcome grant
 - [ ] Edge middleware: protect `(app)/*`, preserve `returnUrl`
+- [ ] **Role-based routing** ([16](16-AUTH-AND-ROUTING.md)): `/auth/callback` looks up
+      `platform_admins` → `/admin`, else `/studio/video`; `returnUrl` allowlist;
+      `is_admin` JWT claim via auth hook
 - [ ] App shell: sidebar, topbar, live credit chip
 
 **Commit:** `feat: schema, RLS, email OTP auth, app shell`
@@ -123,17 +130,35 @@ stops here, the submission is already viable.
 
 **Commit:** `feat: model comparison, history, share links, ledger`
 
-## H9.5–H10.5 — Billing + landing + admin · 60 min
+## H9.5–H10.75 — Admin control plane · 75 min · see [14](14-ADMIN-DASHBOARD.md)
+
+- [ ] `platform_admins` (separate authz plane), `plan_policies`, `workspace_policies`,
+      `platform_settings`, `admin_actions` + RLS
+- [ ] `resolvePolicy()` — layer, clamp, cache, `source` tracking
+- [ ] Enforcement wired at all four points (middleware, submit, debit, upload)
+- [ ] Client-side limit messaging: specific errors, reset times, queue-don't-reject
+- [ ] `/admin` overview + `/admin/workspaces` list
+- [ ] `/admin/workspaces/[id]` — **limits editor with source column + preview diff**
+- [ ] Audit row on every admin write; reason required
+- [ ] Spend circuit breaker + global circuit breaker
+- [ ] TOTP enrollment + `/auth/mfa`; `aal2` gate on the admin layout and API routes
+- [ ] Studio ⇄ Admin switcher; `seed-admin.ts` + read-only demo admin
+      ([16](16-AUTH-AND-ROUTING.md))
+
+**Commit:** `feat: limits engine + admin control plane`
+**Demoable:** cap a customer's daily spend live, watch enforcement + the audit trail.
+
+## H10.75–H11.5 — Billing + landing + seed · 45 min
 
 - [ ] Stripe products, Checkout, Billing Portal, webhooks (idempotent on event id)
 - [ ] Pricing page with the original's ladder; test-card note for reviewers
 - [ ] Landing page — hero, live public gallery, explainer, pricing, CTA
-- [ ] `/admin` single read-only ops page
-- [ ] Seed script: demo workspace, ~15 public generations, ledger with a refund
+- [ ] Seed script: demo workspace, ~15 public generations, ledger with a refund,
+      one workspace carrying a visible limit override
 
-**Commit:** `feat: stripe billing, landing page, admin, seed data`
+**Commit:** `feat: stripe billing, landing page, seed data`
 
-## H10.5–H11.5 — Hardening & polish · 60 min
+## H11.5–H12.25 — Hardening & polish · 45 min
 
 - [ ] Playwright E2E happy path green in CI
 - [ ] axe a11y pass on 5 routes; fix contrast/focus/roles
@@ -146,7 +171,7 @@ stops here, the submission is already viable.
 
 **Commit:** `chore: hardening, a11y, security pass, README`
 
-## H11.5–H12 — Submission · 30 min
+## H12.25–H12.75 — Submission · 30 min
 
 - [ ] Rotate any key that could have been exposed
 - [ ] Final `.agent-logs/` commit; verify unedited and complete
@@ -166,20 +191,35 @@ stops here, the submission is already viable.
 | 1:00–2:00 | Live: sign in with an email code, generate a real image, download it. |
 | 2:00–3:00 | **Compare mode** — one prompt, three models, fired in parallel, honest per-stage progress. Contrast with the original's fake 95% bar. |
 | 3:00–3:40 | A generation fails → the ledger shows the automatic refund. Trust, demonstrated not claimed. |
-| 3:40–4:10 | Share permalink + unfurl. The growth loop the original is missing. |
-| 4:10–4:30 | Architecture in one diagram: append-only ledger, workspace-keyed rows, provider abstraction with a mock, transactional outbox. What that buys in month six. |
+| 3:40–4:00 | Share permalink + unfurl. The growth loop the original is missing. |
+| 4:00–4:30 | Admin: cap a customer's daily spend live, show the resolved policy with its `source` column and the audit row. Then one architecture slide — append-only ledger, workspace-keyed rows, provider abstraction with a mock, transactional outbox. What that buys in month six. |
+
+## Schedule honesty
+
+Adding the admin control plane ([14](14-ADMIN-DASHBOARD.md)) pushes the nominal end to
+**H12.75 — over the window.** That's stated rather than hidden, and it's why the cut
+order below exists and is decided now. The realistic read: the buffer that used to sit
+between H11 and H12 is gone, so anything that slips comes out of the cut list rather
+than out of the submission deadline. If H6.5 arrives with the pipeline unfinished, cuts
+1 and 2 fire immediately rather than at H11.
 
 ## Cut order under time pressure
 
-If behind schedule, drop in this order — decided **now**, so it's not decided badly
-at hour 10:
+Decided **now**, so it's not decided badly at hour 10:
 
-1. `/admin` page
-2. Prompt enhance/variate (keep presets)
+1. Prompt enhance/variate (keep the preset palette — it solves the blank-textarea
+   problem on its own)
+2. Admin Tier B — the generations inspector and model toggles
+   ([14](14-ADMIN-DASHBOARD.md) §10). Tier A stays.
 3. Stripe (keep the pricing page; note test mode not wired)
 4. History filters (keep the grid + rerun)
 5. Image studio (video alone proves the loop)
 
 Never cut: capture logging, the ledger, the honest progress state machine, compare
-mode, share links, the mock provider, or the a11y/security pass. Those are the
-submission's actual argument.
+mode, share links, the mock provider, the limits engine + enforcement, or the
+a11y/security pass. Those are the submission's actual argument.
+
+Note the ordering change: **admin Tier A now outranks prompt enhance and Stripe.** A
+limits control plane demonstrates more engineering judgement in a five-minute
+walkthrough than an LLM rewrite button does, and enforcement without a way to configure
+it is the gap that prompted the whole doc.

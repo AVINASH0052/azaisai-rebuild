@@ -53,6 +53,7 @@ years later. Team invites and SSO cost days later and can wait.
 | 1.7 | Credits page as a real **ledger**, not a number | Trust. Every debit, credit, refund, with reason. |
 | 1.8 | Stripe subscriptions + top-ups (test mode) with webhook-driven grants | Proves the money path end to end. |
 | 1.9 | Auto-refund on failure, visible in the ledger | The original promises it in the FAQ; we show it. |
+| 1.10 | **Limits engine + admin control plane** ([14](14-ADMIN-DASHBOARD.md)) | Per-client limits that are configurable, enforced at four points, clamped globally during incidents, and audited. The thing that makes a metered product operable by someone who isn't the person who wrote it. |
 
 ## Tier 2 — foundations laid, features deferred (schema + seams exist, UI doesn't)
 
@@ -77,7 +78,7 @@ Each with the reason, because "what you left out" is scored.
 
 | Cut | Reason |
 |---|---|
-| **11 admin routes** (revenue, costs, attribution, models, insights) | Operator tooling for a business that doesn't exist yet. We ship *one* read-only `/admin` with generations + spend, because the demo needs an ops story, and stop there. |
+| ~~**11 admin routes**~~ — **revised, see [14](14-ADMIN-DASHBOARD.md)** | Original call: ship one read-only `/admin` and stop. That was right for the *analytics* routes and wrong for the *control* routes — without a limits editor, the only lever on a customer is a database console and every intervention is an unlogged manual UPDATE. Revised: a policy/limits control plane plus three admin screens ship in Tier 1; the analytics routes (`/admin/revenue`, `/admin/costs`, `/admin/attribution`, `/admin/insights`) stay cut. |
 | **Reposter program** (4 routes) | A UGC distribution program is a company-stage decision, not a product primitive. Replaced by shareable permalinks (1.6), which serve the same growth goal at 1% of the cost. |
 | **Referrals** | Same family. Schema-compatible (`referred_by` column exists), UI deferred. |
 | **Phone-OTP free trial** | Anti-abuse cost paid in activation. Replaced with: email-verified signup + a smaller grant (5 credits) + IP/device velocity limits + Turnstile. Same abuse surface, no phone wall. Explicit trade: slightly more abuse risk, materially better funnel — and for a demo where strangers must be able to use the live link, the phone wall is disqualifying. |

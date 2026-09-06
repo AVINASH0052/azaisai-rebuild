@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, boolean, primaryKey } from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp, uuid, boolean, primaryKey } from "drizzle-orm/pg-core";
 import { planEnum, roleEnum } from "./enums";
 
 export const workspaces = pgTable("workspaces", {
@@ -7,6 +7,7 @@ export const workspaces = pgTable("workspaces", {
   slug: text("slug").notNull().unique(),
   plan: planEnum("plan").notNull().default("free"),
   ownerUserId: uuid("owner_user_id").notNull(),
+  policyVersion: integer("policy_version").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

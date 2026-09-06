@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { DM_Sans, DM_Serif_Text, JetBrains_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
-const sans = Inter({
+const sans = DM_Sans({
   variable: "--font-sans",
+  subsets: ["latin"],
+});
+
+const display = DM_Serif_Text({
+  weight: "400",
+  variable: "--font-display",
   subsets: ["latin"],
 });
 
@@ -24,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("dark", sans.variable, mono.variable)}>
+    <html lang="en" className={cn(sans.variable, display.variable, mono.variable)}>
       <body className="min-h-screen font-sans antialiased">{children}</body>
     </html>
   );

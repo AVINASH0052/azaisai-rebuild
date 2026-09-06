@@ -202,6 +202,13 @@ Inserted in the **same transaction** as the generation row — the transactional
 pattern. This is what guarantees a generation can never exist without a job, and a job
 can never exist for a generation that got rolled back.
 
+### Admin & policy tables
+`platform_admins`, `plan_policies` (+ `_history`), `workspace_policies`,
+`platform_settings`, `admin_actions`, `moderation_flags` — defined in
+[14](14-ADMIN-DASHBOARD.md) §6. Two notes that belong here: `platform_admins` is a
+**separate authz plane**, never derived from `workspace_members`, and `admin_actions`
+carries the same append-only trigger guard as `credit_ledger`.
+
 ### `analytics_events`
 `id`, `workspace_id null`, `user_id null`, `anonymous_id`, `name`, `props jsonb`,
 `session_id`, `created_at`. One table replacing three vendors ([02](02-SCOPE.md)).

@@ -71,3 +71,16 @@ export const actorTypeEnum = pgEnum("actor_type", [
   "admin",
   "api_key",
 ]);
+
+export const adminRoleEnum = pgEnum("admin_role", [
+  "support",
+  "operator",
+  "superadmin",
+]);
+
+export const workspaceStateEnum = pgEnum("workspace_state", [
+  "active",
+  "throttled",
+  "suspended",
+  "read_only",
+]);

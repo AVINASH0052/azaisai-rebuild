@@ -236,3 +236,20 @@ create policy analytics_select on analytics_events
   );
 
 grant select on api_keys_public to authenticated, anon;
+
+alter table platform_admins enable row level security;
+alter table plan_policies enable row level security;
+alter table workspace_policies enable row level security;
+alter table platform_settings enable row level security;
+alter table admin_actions enable row level security;
+alter table moderation_flags enable row level security;
+
+drop policy if exists platform_admins_self on platform_admins;
+create policy platform_admins_self on platform_admins
+  for select using (user_id = auth.uid() and revoked_at is null);
+
+drop trigger if exists admin_actions_immutable on admin_actions;
+create trigger admin_actions_immutable
+  before update or delete on admin_actions
+  for each row execute function public.forbid_mutation();
+

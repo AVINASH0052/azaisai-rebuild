@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { sessionBalance } from "@/services/credits";
+import { CreditChip } from "@/features/studio/credit-chip";
 import { ModeSwitch } from "./mode-switch";
+import { NavLinks } from "./nav-links";
 import { SignOutButton } from "./sign-out-button";
 
 const NAV = [
@@ -13,8 +15,8 @@ const NAV = [
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const { balance } = await sessionBalance();
   return (
-    <div className="min-h-screen bg-bg text-fg">
-      <header className="flex items-center gap-4 border-b border-border px-4 py-3">
+    <div className="min-h-screen text-fg">
+      <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-border bg-bg-elevated/80 px-4 py-3 backdrop-blur-md">
         <Link
           href="/studio/video"
           className="font-mono text-xs tracking-[0.18em] text-accent uppercase"
@@ -23,28 +25,13 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
         </Link>
         <ModeSwitch />
         <div className="ml-auto flex items-center gap-4">
-          <span
-            className="rounded-full border border-border bg-bg-elevated px-3 py-1 font-mono text-sm"
-            aria-label={`${balance} credits`}
-          >
-            {balance} cr
-          </span>
+          <CreditChip fallback={balance} />
           <SignOutButton />
         </div>
       </header>
       <div className="flex">
-        <aside className="hidden w-52 shrink-0 border-r border-border p-3 md:block">
-          <nav className="flex flex-col gap-1 text-sm">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-lg px-3 py-2 text-fg-muted hover:bg-bg-elevated hover:text-fg"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+        <aside className="hidden min-h-[calc(100vh-57px)] w-52 shrink-0 border-r border-border bg-sidebar/80 p-3 md:block">
+          <NavLinks items={NAV} />
         </aside>
         <div className="min-w-0 flex-1">{children}</div>
       </div>

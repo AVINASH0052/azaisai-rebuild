@@ -1,7 +1,8 @@
 import { desc, eq } from "drizzle-orm";
 import { creditLedger } from "@/db/schema";
 import { requireDb } from "@/db";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { TEST_BYPASS_CREDITS } from "@/lib/auth/test-bypass";
+import { createServerSupabase, hasTestBypass } from "@/lib/supabase/server";
 
 export async function balance(workspaceId: string) {
   const db = requireDb();
@@ -15,6 +16,9 @@ export async function balance(workspaceId: string) {
 }
 
 export async function sessionBalance() {
+  if (await hasTestBypass()) {
+    return { balance: TEST_BYPASS_CREDITS, workspaceId: null as string | null };
+  }
   const supabase = await createServerSupabase();
   if (!supabase) return { balance: 0, workspaceId: null as string | null };
   const {

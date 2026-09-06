@@ -1,6 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import {
+  TEST_BYPASS_COOKIE,
+  isValidBypassCookie,
+  testBypassSecret,
+} from "@/lib/auth/test-bypass";
 import { supabasePublicKey, supabaseUrl } from "./keys";
+
+export async function hasTestBypass() {
+  const jar = await cookies();
+  return isValidBypassCookie(jar.get(TEST_BYPASS_COOKIE)?.value, testBypassSecret());
+}
 
 export async function createServerSupabase() {
   const url = supabaseUrl();

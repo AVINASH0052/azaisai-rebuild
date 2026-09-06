@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 
 const sql =
   readFileSync("drizzle/0000_init.sql", "utf8") +
+  readFileSync("drizzle/0001_admin_policy.sql", "utf8") +
   readFileSync("supabase/policies/rls.sql", "utf8");
 
 const needed = [
@@ -19,6 +20,11 @@ const needed = [
   "api_keys",
   "job_outbox",
   "analytics_events",
+  "platform_admins",
+  "plan_policies",
+  "workspace_policies",
+  "platform_settings",
+  "admin_actions",
   "current_workspace_ids",
   "handle_new_user",
   "forbid_mutation",

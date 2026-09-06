@@ -32,6 +32,11 @@ Verified in order, each in a way that can actually fail.
       what was cut and why, honest known limitations
 - [ ] No secrets anywhere in the history (`gitleaks detect` on the full history, not
       just the working tree)
+- [ ] No history rewriting — reflog shows no force-push or rebase
+      ([15](15-GIT-WORKFLOW.md))
+- [ ] `git log --diff-filter=D -- .agent-logs/` is **empty** — proves no log entry was
+      ever deleted
+- [ ] `submission` tag pushed at the final commit
 - [ ] `.env.example` present with placeholders
 
 ### Walkthrough

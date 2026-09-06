@@ -47,6 +47,11 @@ API reimplements.
 | 402 | `INSUFFICIENT_CREDITS` | balance < quote |
 | 422 | `CONTENT_POLICY` | provider or our pre-filter rejected the prompt |
 | 429 | `RATE_LIMITED` | + `Retry-After` |
+| 429 | `CONCURRENCY_LIMIT` | at the plan's concurrent-generation cap; queued where possible |
+| 402 | `SPEND_CAP_REACHED` | workspace or platform daily COGS ceiling hit ([14](14-ADMIN-DASHBOARD.md)) |
+| 403 | `MODEL_NOT_AVAILABLE` | model outside the plan's allowed tiers, or pulled by an admin |
+| 403 | `ACCOUNT_SUSPENDED` | workspace `state` is suspended or read_only |
+| 413 | `STORAGE_QUOTA_EXCEEDED` | over the plan's storage limit |
 | 503 | `PROVIDER_UNAVAILABLE` | all adapters for that model down |
 | 500 | `INTERNAL` | never leaks internals; `request_id` is the handle |
 

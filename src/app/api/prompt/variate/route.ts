@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { AppError, errorEnvelope } from "@/lib/errors";
 import { requestId } from "@/lib/request-id";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabase, hasTestBypass } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { variatePrompt } from "@/services/prompt/enhance";
 
@@ -14,7 +14,7 @@ const bodySchema = z.object({
 export async function POST(req: Request) {
   const id = requestId(req.headers.get("x-request-id"));
   try {
-    if (supabaseConfigured()) {
+    if (supabaseConfigured() && !(await hasTestBypass())) {
       const supabase = await createServerSupabase();
       const user = supabase ? (await supabase.auth.getUser()).data.user : null;
       if (!user) throw new AppError("UNAUTHENTICATED", "Sign in to vary a prompt.");

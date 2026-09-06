@@ -8,8 +8,9 @@ export function SignOutButton() {
   return (
     <button
       type="button"
-      className="text-sm text-fg-subtle hover:text-fg-muted"
+      className="text-sm text-fg-subtle hover:text-fg"
       onClick={async () => {
+        await fetch("/api/auth/test-bypass", { method: "DELETE" });
         const supabase = createBrowserSupabase();
         await supabase.auth.signOut();
         router.replace("/auth/login");
