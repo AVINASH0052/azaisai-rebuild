@@ -15,7 +15,7 @@ export async function GET(
     return NextResponse.json(errorEnvelope(err, rid), { status: err.status });
   }
   return NextResponse.json(
-    { id, ...mockStatus(parsed.createdAt, parsed.kind) },
+    { id, ...mockStatus(parsed.createdAt, parsed.kind, parsed.segments) },
     { headers: { "X-Request-Id": rid } },
   );
 }

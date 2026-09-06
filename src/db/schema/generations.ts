@@ -30,6 +30,10 @@ export const generations = pgTable(
     provider: text("provider").notNull(),
     providerJobId: text("provider_job_id"),
     prompt: text("prompt").notNull(),
+    segmentCount: smallint("segment_count"),
+    requestedDurationSeconds: integer("requested_duration_seconds"),
+    stitchStatus: text("stitch_status"),
+    storyboard: jsonb("storyboard").$type<unknown[]>(),
     enhancedPrompt: text("enhanced_prompt"),
     negativePrompt: text("negative_prompt"),
     params: jsonb("params").$type<Record<string, unknown>>().notNull().default({}),
@@ -80,6 +84,24 @@ export const generationAssets = pgTable("generation_assets", {
   checksum: text("checksum"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const generationSegments = pgTable("generation_segments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  generationId: uuid("generation_id")
+    .notNull()
+    .references(() => generations.id, { onDelete: "cascade" }),
+  index: smallint("index").notNull(),
+  prompt: text("prompt").notNull(),
+  status: genStatusEnum("status").notNull().default("queued"),
+  providerJobId: text("provider_job_id"),
+  seedImagePath: text("seed_image_path"),
+  outputPath: text("output_path"),
+  lastFramePath: text("last_frame_path"),
+  errorCode: text("error_code"),
+  attempt: smallint("attempt").notNull().default(0),
+  durationMs: integer("duration_ms"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const shareLinks = pgTable("share_links", {

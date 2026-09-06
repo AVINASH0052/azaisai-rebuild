@@ -4,6 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { IMAGE_STYLES, modelsFor, type Kind } from "@/providers/registry";
 import { quoteCredits } from "@/providers/quote";
+import {
+  type Beat,
+  DURATION_PRESETS,
+  MAX_VIDEO_SEC,
+  MIN_VIDEO_SEC,
+  clampDuration,
+  fallbackBeats,
+  segmentCount,
+} from "@/providers/long-video";
 import { debitCredits, readCredits, refundCredits } from "./credits-store";
 import { saveJob } from "./local-jobs";
 
@@ -21,7 +30,7 @@ export function Studio({ mode }: { mode: Kind }) {
   const model = models.find((m) => m.id === modelId) ?? models[0];
   const [prompt, setPrompt] = useState("");
   const [aspect, setAspect] = useState(model?.capabilities.aspects[0] ?? "16:9");
-  const [durationSec, setDurationSec] = useState(model?.capabilities.durations?.[0] ?? 4);
+  const [durationSec, setDurationSec] = useState(8);
   const [style, setStyle] = useState<(typeof IMAGE_STYLES)[number]>("None");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +43,10 @@ export function Studio({ mode }: { mode: Kind }) {
     video?: string;
   } | null>(null);
   const [balance, setBalance] = useState(5);
+  const [beats, setBeats] = useState<Beat[]>([]);
+  const [planning, setPlanning] = useState(false);
+
+  const segments = mode === "video" ? segmentCount(durationSec) : 1;
 
   useEffect(() => {
     setBalance(readCredits());
@@ -47,16 +60,40 @@ export function Studio({ mode }: { mode: Kind }) {
     if (!model.capabilities.aspects.includes(aspect)) {
       setAspect(model.capabilities.aspects[0]);
     }
-    if (model.capabilities.durations && !model.capabilities.durations.includes(durationSec)) {
-      setDurationSec(model.capabilities.durations[0]);
-    }
-  }, [model, aspect, durationSec]);
+  }, [model, aspect]);
+
+  useEffect(() => {
+    setBeats([]);
+  }, [durationSec]);
 
   const cost = useMemo(
     () => (model ? quoteCredits(model, mode === "video" ? durationSec : undefined) : 0),
     [model, mode, durationSec],
   );
   const canAfford = balance >= cost;
+
+  async function planBeats() {
+    if (!prompt.trim() || mode !== "video" || segments <= 1) return;
+    setPlanning(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/storyboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: prompt.trim(), durationSec }),
+      });
+      const json = (await res.json()) as { beats?: Beat[]; error?: { message: string } };
+      if (!res.ok || !json.beats) {
+        setBeats(fallbackBeats(prompt.trim(), durationSec));
+        return;
+      }
+      setBeats(json.beats);
+    } catch {
+      setBeats(fallbackBeats(prompt.trim(), durationSec));
+    } finally {
+      setPlanning(false);
+    }
+  }
 
   async function enhance() {
     if (!prompt.trim()) return;
@@ -98,6 +135,12 @@ export function Studio({ mode }: { mode: Kind }) {
           aspect,
           durationSec: mode === "video" ? durationSec : undefined,
           style: mode === "image" ? style : undefined,
+          storyboard:
+            mode === "video" && segments > 1
+              ? (beats.length === segments
+                  ? beats
+                  : fallbackBeats(prompt.trim(), durationSec))
+              : undefined,
         }),
       });
       const json = (await res.json()) as {
@@ -262,13 +305,31 @@ export function Studio({ mode }: { mode: Kind }) {
           ))}
         </div>
 
-        {mode === "video" && model?.capabilities.durations ? (
+        {mode === "video" ? (
           <>
             <p className="mt-4 text-xs font-medium tracking-wide text-fg-subtle uppercase">
-              Length
+              Length · {durationSec}s · max {MAX_VIDEO_SEC}s
             </p>
+            <div className="mt-2 flex items-center gap-3">
+              <input
+                type="range"
+                min={MIN_VIDEO_SEC}
+                max={MAX_VIDEO_SEC}
+                value={durationSec}
+                className="w-full accent-[var(--accent)]"
+                onChange={(e) => setDurationSec(clampDuration(Number(e.target.value)))}
+              />
+              <input
+                type="number"
+                min={MIN_VIDEO_SEC}
+                max={MAX_VIDEO_SEC}
+                value={durationSec}
+                className={`${field} w-16 py-1.5 text-center`}
+                onChange={(e) => setDurationSec(clampDuration(Number(e.target.value)))}
+              />
+            </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {model.capabilities.durations.map((d) => (
+              {DURATION_PRESETS.map((d) => (
                 <button
                   key={d}
                   type="button"
@@ -284,6 +345,53 @@ export function Studio({ mode }: { mode: Kind }) {
               ))}
             </div>
           </>
+        ) : null}
+
+        {mode === "video" && segments > 1 ? (
+          <div className="mt-4 rounded-2xl border border-border bg-bg px-3 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-medium tracking-wide text-fg-subtle uppercase">
+                Storyboard
+              </p>
+              <button
+                type="button"
+                className="text-sm text-fg-muted underline-offset-4 hover:text-fg hover:underline disabled:opacity-50"
+                disabled={planning || !prompt.trim()}
+                onClick={() => void planBeats()}
+              >
+                {planning ? "Planning…" : beats.length ? "Replan" : "Plan beats"}
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-fg-subtle">
+              Each beat continues from the last frame of the one before it. Edit
+              before you spend.
+            </p>
+            {(beats.length ? beats : fallbackBeats(prompt.trim() || "…", durationSec)).map(
+              (beat) => (
+                <label key={beat.index} className="mt-3 block">
+                  <span className="font-mono text-[11px] text-accent">
+                    {beat.index + 1} · {beat.startSec}–{beat.endSec}s
+                    {beat.contentSec < 8 ? " · trim" : ""}
+                  </span>
+                  <textarea
+                    className={`${field} mt-1 min-h-16 resize-y text-sm`}
+                    value={
+                      beats[beat.index]?.prompt ??
+                      (prompt.trim() ? beat.prompt : "")
+                    }
+                    onChange={(e) => {
+                      const next = (
+                        beats.length ? beats : fallbackBeats(prompt.trim(), durationSec)
+                      ).map((b) =>
+                        b.index === beat.index ? { ...b, prompt: e.target.value } : b,
+                      );
+                      setBeats(next);
+                    }}
+                  />
+                </label>
+              ),
+            )}
+          </div>
         ) : null}
 
         {mode === "image" ? (
@@ -311,7 +419,11 @@ export function Studio({ mode }: { mode: Kind }) {
         ) : null}
 
         <div className="mt-6 rounded-2xl border border-border bg-bg-inset px-3 py-2 text-sm text-fg">
-          Cost {cost} cr · balance {balance}
+          Cost {cost} cr
+          {mode === "video"
+            ? ` · ${segments} × 8s · ${durationSec}s delivered`
+            : ""}
+          {" · "}balance {balance}
           {canAfford ? ` → ${balance - cost}` : " · not enough"}
         </div>
         {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
@@ -352,7 +464,7 @@ export function Studio({ mode }: { mode: Kind }) {
                 <a
                   className="rounded-full bg-ink px-4 py-2 text-sm text-bg-elevated"
                   href={result.video ?? result.poster}
-                  download={`azai-${result.id}${result.video ? ".mp4" : ".svg"}`}
+                  download={`hearth-${result.id}${result.video ? ".mp4" : ".svg"}`}
                 >
                   Download
                 </a>

@@ -25,6 +25,8 @@ const schema = z.object({
   STRIPE_WEBHOOK_SECRET: z.preprocess(emptyToUndef, z.string().min(1).optional()),
   STRIPE_PUBLISHABLE_KEY: z.preprocess(emptyToUndef, z.string().min(1).optional()),
   CRON_SECRET: z.preprocess(emptyToUndef, z.string().min(1).optional()),
+  WORKER_URL: z.preprocess(emptyToUndef, z.string().url().optional()),
+  WORKER_SECRET: z.preprocess(emptyToUndef, z.string().min(1).optional()),
   SENTRY_DSN: z.preprocess(emptyToUndef, z.string().url().optional()),
 });
 
@@ -51,6 +53,8 @@ export const env = schema.parse({
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
   STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
   CRON_SECRET: process.env.CRON_SECRET,
+  WORKER_URL: process.env.WORKER_URL,
+  WORKER_SECRET: process.env.WORKER_SECRET,
   SENTRY_DSN: process.env.SENTRY_DSN,
 });
 

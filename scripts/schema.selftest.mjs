@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 const sql =
   readFileSync("drizzle/0000_init.sql", "utf8") +
   readFileSync("drizzle/0001_admin_policy.sql", "utf8") +
+  readFileSync("drizzle/0002_long_video.sql", "utf8") +
   readFileSync("supabase/policies/rls.sql", "utf8");
 
 const needed = [
@@ -14,6 +15,7 @@ const needed = [
   "credit_grants",
   "generations",
   "generation_assets",
+  "generation_segments",
   "share_links",
   "subscriptions",
   "audit_events",

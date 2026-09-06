@@ -253,3 +253,14 @@ create trigger admin_actions_immutable
   before update or delete on admin_actions
   for each row execute function public.forbid_mutation();
 
+alter table generation_segments enable row level security;
+drop policy if exists generation_segments_select on generation_segments;
+create policy generation_segments_select on generation_segments
+  for select using (
+    exists (
+      select 1 from generations g
+      where g.id = generation_id
+        and g.workspace_id in (select public.current_workspace_ids())
+    )
+  );
+

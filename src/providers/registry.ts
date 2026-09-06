@@ -43,7 +43,6 @@ export const MODELS: Model[] = [
     credits: { per: "second", rate: 1.5 },
     capabilities: {
       audio: true,
-      durations: [4, 6, 8],
       aspects: VIDEO_ASPECTS,
       resolutions: ["720p"],
     },
@@ -59,7 +58,6 @@ export const MODELS: Model[] = [
     credits: { per: "second", rate: 3 },
     capabilities: {
       audio: true,
-      durations: [4, 6, 8],
       aspects: VIDEO_ASPECTS,
       resolutions: ["720p", "1080p"],
     },
@@ -73,7 +71,6 @@ export const MODELS: Model[] = [
     availability: "live",
     credits: { per: "second", rate: 3 },
     capabilities: {
-      durations: [4, 6, 8],
       aspects: VIDEO_ASPECTS,
       resolutions: ["720p"],
     },
@@ -89,7 +86,6 @@ export const MODELS: Model[] = [
     credits: { per: "second", rate: 1 },
     capabilities: {
       audio: true,
-      durations: [4, 6, 8],
       aspects: VIDEO_ASPECTS,
       resolutions: ["720p", "1080p"],
     },
@@ -105,7 +101,6 @@ export const MODELS: Model[] = [
     credits: { per: "second", rate: 2 },
     capabilities: {
       audio: true,
-      durations: [4, 6, 8],
       aspects: VIDEO_ASPECTS,
       resolutions: ["720p", "1080p"],
     },
@@ -120,7 +115,6 @@ export const MODELS: Model[] = [
     availability: "mock_only",
     credits: { per: "second", rate: 1 },
     capabilities: {
-      durations: [4, 6, 8],
       aspects: VIDEO_ASPECTS,
       resolutions: ["720p"],
     },
@@ -135,7 +129,6 @@ export const MODELS: Model[] = [
     availability: "mock_only",
     credits: { per: "second", rate: 1.2 },
     capabilities: {
-      durations: [4, 6, 8],
       aspects: VIDEO_ASPECTS,
       resolutions: ["720p", "1080p"],
     },
@@ -150,7 +143,6 @@ export const MODELS: Model[] = [
     availability: "mock_only",
     credits: { per: "second", rate: 1 },
     capabilities: {
-      durations: [4, 6, 8],
       aspects: VIDEO_ASPECTS,
       resolutions: ["720p"],
     },

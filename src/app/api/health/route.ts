@@ -4,6 +4,7 @@ import { createDb } from "@/db";
 import { env } from "@/lib/env";
 import { requestId } from "@/lib/request-id";
 import { supabaseConfigured } from "@/lib/supabase/config";
+import { workerHealth } from "@/lib/worker";
 
 type Check = "ok" | "unconfigured" | "error";
 
@@ -28,8 +29,11 @@ export async function GET(req: Request) {
   const checks = {
     db: await dbCheck(),
     storage: check(supabaseConfigured()),
-    provider: check(env.PROVIDER_MODE === "mock" || Boolean(env.FAL_KEY)),
+    provider: check(
+      env.PROVIDER_MODE === "mock" || Boolean(env.FAL_KEY || env.GOOGLE_AI_STUDIO),
+    ),
     llm: check(Boolean(env.GOOGLE_AI_STUDIO)),
+    worker: await workerHealth(),
     stripe: check(Boolean(env.STRIPE_SECRET_KEY)),
   };
   const body = {
