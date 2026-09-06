@@ -63,7 +63,7 @@ function friendlyPasswordError(message, code) {
   const m = message.toLowerCase();
   const c = (code ?? "").toLowerCase();
   if (isEmailSendLimit(message, code)) {
-    return "A confirmation email was already sent. Check your inbox, or wait a minute.";
+    return "Could not send the confirmation email yet. Wait a minute and try again.";
   }
   if (c === "over_request_rate_limit" || m.includes("rate limit")) {
     return "Too many tries. Wait a minute and try again.";
@@ -73,9 +73,38 @@ function friendlyPasswordError(message, code) {
 
 assert.equal(isEmailSendLimit("email rate limit exceeded"), true);
 assert.equal(isEmailSendLimit("Request rate limit reached", "over_request_rate_limit"), false);
+function signupAfterResponse({ message, code, identities, hasSession }) {
+  if (message) {
+    return isEmailSendLimit(message, code) ? "wait" : "error";
+  }
+  if (alreadyRegistered({ identities: identities ?? null })) return "exists";
+  if (hasSession) return "ready";
+  return "sent";
+}
+
 assert.equal(
   friendlyPasswordError("email rate limit exceeded"),
-  "A confirmation email was already sent. Check your inbox, or wait a minute.",
+  "Could not send the confirmation email yet. Wait a minute and try again.",
+);
+assert.equal(
+  signupAfterResponse({
+    message: "email rate limit exceeded",
+    identities: [{ id: "1" }],
+    hasSession: false,
+  }),
+  "wait",
+);
+assert.equal(
+  signupAfterResponse({ message: null, identities: [{ id: "1" }], hasSession: false }),
+  "sent",
+);
+assert.equal(
+  signupAfterResponse({ message: null, identities: [], hasSession: false }),
+  "exists",
+);
+assert.equal(
+  signupAfterResponse({ message: null, identities: [{ id: "1" }], hasSession: true }),
+  "ready",
 );
 assert.equal(
   friendlyPasswordError("Request rate limit reached"),

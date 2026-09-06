@@ -42,7 +42,7 @@ export function friendlyPasswordError(message: string, code?: string) {
     return "That email already has an account. Sign in instead.";
   }
   if (isEmailSendLimit(message, code)) {
-    return "A confirmation email was already sent. Check your inbox, or wait a minute.";
+    return "Could not send the confirmation email yet. Wait a minute and try again.";
   }
   if (c === "over_request_rate_limit" || m.includes("rate limit")) {
     return "Too many tries. Wait a minute and try again.";
@@ -51,6 +51,20 @@ export function friendlyPasswordError(message: string, code?: string) {
     return "Password does not meet the requirements.";
   }
   return "Something went wrong. Try again.";
+}
+
+export function signupAfterResponse(opts: {
+  message?: string | null;
+  code?: string;
+  identities?: { id?: string }[] | null;
+  hasSession: boolean;
+}): "sent" | "exists" | "ready" | "wait" | "error" {
+  if (opts.message) {
+    return isEmailSendLimit(opts.message, opts.code) ? "wait" : "error";
+  }
+  if (alreadyRegistered({ identities: opts.identities ?? null })) return "exists";
+  if (opts.hasSession) return "ready";
+  return "sent";
 }
 
 export function callbackAfterExchange(opts: {

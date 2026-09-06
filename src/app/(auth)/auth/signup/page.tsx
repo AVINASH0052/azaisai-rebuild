@@ -13,12 +13,7 @@ export default async function SignupPage({
     <main className="flex min-h-screen items-center justify-center px-6 py-16">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-bg-elevated p-8 shadow-card">
         <Wordmark />
-        <h1 className="mt-3 text-3xl text-fg">Create an account</h1>
-        <p className="mt-2 text-sm text-fg-muted">
-          Enter your email and a new password. We will send a confirmation
-          link. After you confirm, sign in with that password.
-        </p>
-        <div className="mt-8">
+        <div className="mt-3">
           <SignUpForm returnUrl={dest} initialEmail={email ?? ""} />
         </div>
       </div>
