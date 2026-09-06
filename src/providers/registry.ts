@@ -1,4 +1,5 @@
 export type Kind = "video" | "image";
+export type Availability = "live" | "mock_only" | "disabled";
 
 export type Model = {
   id: string;
@@ -6,6 +7,7 @@ export type Model = {
   vendor: string;
   kind: Kind;
   badge?: string;
+  availability: Availability;
   credits: { per: "second" | "image"; rate: number };
   capabilities: {
     audio?: boolean;
@@ -28,28 +30,16 @@ export const IMAGE_STYLES = [
   "Abstract",
 ] as const;
 
+const GOOGLE = "Google AI Studio";
+
 export const MODELS: Model[] = [
-  {
-    id: "sora-2",
-    label: "Sora Standard",
-    vendor: "OpenAI",
-    kind: "video",
-    badge: "Popular",
-    credits: { per: "second", rate: 1 },
-    capabilities: {
-      audio: true,
-      durations: [4, 6, 8],
-      aspects: VIDEO_ASPECTS,
-      resolutions: ["720p", "1080p"],
-    },
-    estimatedSeconds: 120,
-  },
   {
     id: "veo-3-fast",
     label: "Veo 3 Fast",
-    vendor: "Google",
+    vendor: GOOGLE,
     kind: "video",
     badge: "Fast",
+    availability: "live",
     credits: { per: "second", rate: 1.5 },
     capabilities: {
       audio: true,
@@ -60,39 +50,12 @@ export const MODELS: Model[] = [
     estimatedSeconds: 35,
   },
   {
-    id: "sora-2-pro",
-    label: "Sora Pro",
-    vendor: "OpenAI",
-    kind: "video",
-    badge: "Premium",
-    credits: { per: "second", rate: 2 },
-    capabilities: {
-      audio: true,
-      durations: [4, 6, 8],
-      aspects: VIDEO_ASPECTS,
-      resolutions: ["720p", "1080p"],
-    },
-    estimatedSeconds: 180,
-  },
-  {
-    id: "veo-2",
-    label: "Veo 2",
-    vendor: "Google",
-    kind: "video",
-    credits: { per: "second", rate: 3 },
-    capabilities: {
-      durations: [4, 6, 8],
-      aspects: VIDEO_ASPECTS,
-      resolutions: ["720p"],
-    },
-    estimatedSeconds: 45,
-  },
-  {
     id: "veo-3-standard",
     label: "Veo 3",
-    vendor: "Google",
+    vendor: GOOGLE,
     kind: "video",
     badge: "New",
+    availability: "live",
     credits: { per: "second", rate: 3 },
     capabilities: {
       audio: true,
@@ -103,11 +66,58 @@ export const MODELS: Model[] = [
     estimatedSeconds: 60,
   },
   {
+    id: "veo-2",
+    label: "Veo 2",
+    vendor: GOOGLE,
+    kind: "video",
+    availability: "live",
+    credits: { per: "second", rate: 3 },
+    capabilities: {
+      durations: [4, 6, 8],
+      aspects: VIDEO_ASPECTS,
+      resolutions: ["720p"],
+    },
+    estimatedSeconds: 45,
+  },
+  {
+    id: "sora-2",
+    label: "Sora Standard",
+    vendor: "OpenAI",
+    kind: "video",
+    badge: "Popular",
+    availability: "mock_only",
+    credits: { per: "second", rate: 1 },
+    capabilities: {
+      audio: true,
+      durations: [4, 6, 8],
+      aspects: VIDEO_ASPECTS,
+      resolutions: ["720p", "1080p"],
+    },
+    estimatedSeconds: 120,
+  },
+  {
+    id: "sora-2-pro",
+    label: "Sora Pro",
+    vendor: "OpenAI",
+    kind: "video",
+    badge: "Premium",
+    availability: "mock_only",
+    credits: { per: "second", rate: 2 },
+    capabilities: {
+      audio: true,
+      durations: [4, 6, 8],
+      aspects: VIDEO_ASPECTS,
+      resolutions: ["720p", "1080p"],
+    },
+    estimatedSeconds: 180,
+  },
+  {
     id: "runway-gen4-turbo",
     label: "Gen-4 Turbo",
     vendor: "Runway",
     kind: "video",
     badge: "Popular",
+    availability: "mock_only",
     credits: { per: "second", rate: 1 },
     capabilities: {
       durations: [4, 6, 8],
@@ -122,6 +132,7 @@ export const MODELS: Model[] = [
     vendor: "Runway",
     kind: "video",
     badge: "Premium",
+    availability: "mock_only",
     credits: { per: "second", rate: 1.2 },
     capabilities: {
       durations: [4, 6, 8],
@@ -136,6 +147,7 @@ export const MODELS: Model[] = [
     vendor: "Runway",
     kind: "video",
     badge: "Fast",
+    availability: "mock_only",
     credits: { per: "second", rate: 1 },
     capabilities: {
       durations: [4, 6, 8],
@@ -147,9 +159,10 @@ export const MODELS: Model[] = [
   {
     id: "nano-banana-2",
     label: "Nano Banana 2",
-    vendor: "Google",
+    vendor: GOOGLE,
     kind: "image",
     badge: "New",
+    availability: "live",
     credits: { per: "image", rate: 1 },
     capabilities: { aspects: IMAGE_ASPECTS, styles: [...IMAGE_STYLES] },
     estimatedSeconds: 8,
@@ -157,9 +170,10 @@ export const MODELS: Model[] = [
   {
     id: "nano-banana-2-4k",
     label: "Nano Banana 2 4K",
-    vendor: "Google",
+    vendor: GOOGLE,
     kind: "image",
     badge: "4K",
+    availability: "live",
     credits: { per: "image", rate: 2 },
     capabilities: { aspects: IMAGE_ASPECTS, styles: [...IMAGE_STYLES] },
     estimatedSeconds: 15,
@@ -170,6 +184,7 @@ export const MODELS: Model[] = [
     vendor: "OpenAI",
     kind: "image",
     badge: "Premium",
+    availability: "mock_only",
     credits: { per: "image", rate: 2 },
     capabilities: { aspects: IMAGE_ASPECTS, styles: [...IMAGE_STYLES] },
     estimatedSeconds: 10,
@@ -179,6 +194,7 @@ export const MODELS: Model[] = [
     label: "Gen-4 Image",
     vendor: "Runway",
     kind: "image",
+    availability: "mock_only",
     credits: { per: "image", rate: 1 },
     capabilities: { aspects: IMAGE_ASPECTS, styles: [...IMAGE_STYLES] },
     estimatedSeconds: 20,
@@ -186,7 +202,9 @@ export const MODELS: Model[] = [
 ];
 
 export function modelsFor(kind: Kind) {
-  return MODELS.filter((m) => m.kind === kind);
+  return MODELS.filter((m) => m.kind === kind && m.availability !== "disabled").sort(
+    (a, b) => Number(a.availability !== "live") - Number(b.availability !== "live"),
+  );
 }
 
 export function getModel(id: string) {

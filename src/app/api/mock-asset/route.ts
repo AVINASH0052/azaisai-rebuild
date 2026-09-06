@@ -49,7 +49,7 @@ export async function GET(req: Request) {
     </linearGradient>
   </defs>
   <rect width="100%" height="100%" fill="url(#g)"/>
-  <text x="${w / 2}" y="${h * 0.18}" fill="#f4f1ea" font-family="Georgia, serif" font-size="${Math.round(w / 22)}" text-anchor="middle">AzaisAI</text>
+  <text x="${w / 2}" y="${h * 0.18}" fill="#f4f1ea" font-family="Georgia, serif" font-size="${Math.round(w / 22)}" text-anchor="middle">Hearth</text>
   ${lines
     .map(
       (line, i) =>

@@ -194,9 +194,9 @@ export function Studio({ mode }: { mode: Kind }) {
               >
                 <span className="flex items-center justify-between gap-2">
                   <span className="font-medium text-fg">{m.label}</span>
-                  {m.badge ? (
+                  {m.availability === "mock_only" || m.badge ? (
                     <span className="font-mono text-[10px] tracking-wide text-accent uppercase">
-                      {m.badge}
+                      {m.availability === "mock_only" ? "Mock" : m.badge}
                     </span>
                   ) : null}
                 </span>

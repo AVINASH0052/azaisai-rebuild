@@ -1,5 +1,11 @@
 # 07 — Credits & Billing
 
+> **Adjusted by [18](18-FREE-TIER-STACK.md).** Stripe stays, in **test mode** (free
+> forever), so the money path still demos end to end. `spend.daily_cents` becomes
+> `quota.daily_requests` — same ledger, same engine, different unit, because on a free
+> tier the scarce resource is API calls rather than dollars. Long videos are charged
+> **per generated 8s segment**, not per delivered second ([19](19-LONG-VIDEO.md)).
+
 ## Credit semantics
 
 A credit is an **integer**. Never fractional, never a float. All pricing arithmetic

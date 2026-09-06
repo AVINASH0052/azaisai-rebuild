@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { sessionBalance } from "@/services/credits";
 import { CreditChip } from "@/features/studio/credit-chip";
+import { Wordmark } from "@/features/brand/wordmark";
 import { AdminPlaneSwitch } from "./admin-plane-switch";
 import { ModeSwitch } from "./mode-switch";
 import { NavLinks } from "./nav-links";
@@ -18,11 +19,8 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen text-fg">
       <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-border bg-bg-elevated/80 px-4 py-3 backdrop-blur-md">
-        <Link
-          href="/studio/video"
-          className="font-mono text-xs tracking-[0.18em] text-accent uppercase"
-        >
-          AzaisAI
+        <Link href="/studio/video" className="leading-none">
+          <Wordmark className="text-[1.25rem]" />
         </Link>
         <ModeSwitch />
         <AdminPlaneSwitch />

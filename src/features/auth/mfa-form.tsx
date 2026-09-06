@@ -48,7 +48,7 @@ export function MfaForm({ returnUrl }: { returnUrl: string }) {
         }
         const { data, error: enrollErr } = await supabase.auth.mfa.enroll({
           factorType: "totp",
-          friendlyName: "AzaisAI",
+          friendlyName: "Hearth",
         });
         if (cancelled) return;
         if (enrollErr || !data) {

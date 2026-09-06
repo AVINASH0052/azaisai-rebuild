@@ -20,8 +20,8 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AzaisAI",
-  description: "Credit-metered AI video and image studio. The loop, rebuilt.",
+  title: "Hearth",
+  description: "Credit-metered video and images from Google AI Studio.",
 };
 
 export default function RootLayout({

@@ -35,9 +35,32 @@ submission by hour 11. Anything after that is buffer, not plan.
 **Commit:** `chore: agent capture hooks + capture test`
 **Gate:** nothing below starts until both canaries are green.
 
+## H0.25 — Free-tier reality check (blocking) · 20 min
+
+Seven API calls, before any application code. Each answer changes the plan if it comes
+back worse than assumed ([18](18-FREE-TIER-STACK.md) §Verification).
+
+- [ ] **Veo on the Gemini free tier** — available? daily/per-minute limits?
+- [ ] **Veo image→video seeding** — does the `image` param work free?
+      ← **decides whether long-form video is buildable at all** ([19](19-LONG-VIDEO.md))
+- [ ] Veo output — duration, resolution, codec, container, audio?
+      ← decides whether `ffmpeg concat -c copy` works without re-encoding
+- [ ] Gemini Flash Image + Gemini Flash text — RPM/RPD
+- [ ] Cloud Run — deploy a hello-world container with ffmpeg, confirm $0
+- [ ] Supabase Free — confirm current storage/egress allowances
+
+**Commit:** `docs: free-tier findings` (with `docs/research/FREE-TIER-FINDINGS.md`)
+**Gate:** the fallback for each bad outcome is pre-decided in
+[18](18-FREE-TIER-STACK.md) §2 and [19](19-LONG-VIDEO.md) §Cut fallback. Take the
+fallback, don't replan.
+
 ## H0.5–H1.5 — Skeleton live · 60 min
 
-- [ ] `create-next-app` — TS strict, Tailwind v4, App Router, pnpm
+- [ ] **pnpm workspace monorepo from commit one** ([17](17-BACKEND-SERVICES.md)):
+      `apps/web` + `packages/{core,db,providers,contracts,config}`.
+      `apps/api` and `apps/worker` stay empty until later — 15 min now, over an
+      hour if deferred to H10.
+- [ ] `create-next-app` in `apps/web` — TS strict, Tailwind v4, App Router, pnpm
 - [ ] shadcn/ui init, design tokens from [08](08-DESIGN-UX.md)
 - [ ] `lib/env.ts` (Zod, validates at boot), `lib/logger.ts`, `lib/errors.ts`
 - [ ] Supabase project (prod + preview), Drizzle configured
@@ -92,6 +115,8 @@ submission by hour 11. Anything after that is buffer, not plan.
 - [ ] Failure → refund in the same transaction
 - [ ] Supabase Realtime subscription on `generations`
 - [ ] Integration test: submit→ready and submit→fail→refund, against mock
+- [ ] **`generation_segments`** + parent columns; sequential chained orchestration;
+      partial-failure and per-segment refund ([19](19-LONG-VIDEO.md)) · +30 min
 
 **Commit:** `feat: generation pipeline — queue, worker, realtime, refunds`
 **Demoable:** POST a generation, watch it walk the state machine live.
@@ -109,28 +134,33 @@ submission by hour 11. Anything after that is buffer, not plan.
 **Demoable:** ← **the core loop works end to end on the live URL.** If everything
 stops here, the submission is already viable.
 
-## H7.5–H8.5 — Real providers + image studio · 60 min
+## H7.5–H9 — Google provider + long video + image studio · 90 min
 
-- [ ] `providers/fal` — submit, poll, webhook parse, artifact resolve, cost capture
-- [ ] `PROVIDER_MODE=auto` with daily spend ceiling + graceful degrade to mock
-- [ ] Provider webhook endpoint
+- [ ] `providers/google` — Veo long-running ops, Gemini Flash Image, poll → artifact
+- [ ] `PROVIDER_MODE=auto` with **daily quota ceiling** + graceful degrade to mock
+- [ ] Gemini Flash **scene decomposition** → `storyboard` ([19](19-LONG-VIDEO.md))
+- [ ] Veo **image→video seeding** for chained segments
+- [ ] **Cloud Run worker container with ffmpeg**: last-frame extract, concat,
+      audio seam, trim, thumbnail
 - [ ] Image studio (same components, image registry + style/aspect params)
 - [ ] **Real image generation working on the live URL**
 
-**Commit:** `feat: fal.ai provider + image studio`
-**Demoable:** a stranger generates a real image and downloads it.
+**Commit:** `feat: google provider, long-form video pipeline, image studio`
+**Demoable:** a stranger generates a real image; a 20s video stitches from 3 segments.
 
-## H8.5–H9.5 — The differentiators · 60 min
+## H9–H10 — The differentiators · 60 min
 
-- [ ] **Compare mode** — `POST /api/generations/batch`, synced `CompareView`
+- [ ] **Storyboard editor** — per-segment status, inline beat editing, single-segment
+      regenerate with its cost stated ([19](19-LONG-VIDEO.md)) · **replaces compare
+      mode as the headline**
 - [ ] **History** — grid, filters, prompt search, rerun, bulk actions
 - [ ] **Share permalinks** — `/g/[shareId]` + dynamic `opengraph-image`
 - [ ] **Credits ledger page** with expiry warnings and a visible refund row
-- [ ] Prompt enhance/variate via Claude + preset palette
+- [ ] Prompt enhance/variate via **Gemini Flash** + preset palette
 
-**Commit:** `feat: model comparison, history, share links, ledger`
+**Commit:** `feat: storyboard editor, history, share links, ledger`
 
-## H9.5–H10.75 — Admin control plane · 75 min · see [14](14-ADMIN-DASHBOARD.md)
+## H10–H11.25 — Admin control plane · 75 min · see [14](14-ADMIN-DASHBOARD.md)
 
 - [ ] `platform_admins` (separate authz plane), `plan_policies`, `workspace_policies`,
       `platform_settings`, `admin_actions` + RLS
@@ -140,7 +170,7 @@ stops here, the submission is already viable.
 - [ ] `/admin` overview + `/admin/workspaces` list
 - [ ] `/admin/workspaces/[id]` — **limits editor with source column + preview diff**
 - [ ] Audit row on every admin write; reason required
-- [ ] Spend circuit breaker + global circuit breaker
+- [ ] **Quota** circuit breaker (per-workspace + platform) — degrade to mock
 - [ ] TOTP enrollment + `/auth/mfa`; `aal2` gate on the admin layout and API routes
 - [ ] Studio ⇄ Admin switcher; `seed-admin.ts` + read-only demo admin
       ([16](16-AUTH-AND-ROUTING.md))
@@ -148,7 +178,7 @@ stops here, the submission is already viable.
 **Commit:** `feat: limits engine + admin control plane`
 **Demoable:** cap a customer's daily spend live, watch enforcement + the audit trail.
 
-## H10.75–H11.5 — Billing + landing + seed · 45 min
+## H11.25–H12 — Billing + landing + seed · 45 min
 
 - [ ] Stripe products, Checkout, Billing Portal, webhooks (idempotent on event id)
 - [ ] Pricing page with the original's ladder; test-card note for reviewers
@@ -158,7 +188,7 @@ stops here, the submission is already viable.
 
 **Commit:** `feat: stripe billing, landing page, seed data`
 
-## H11.5–H12.25 — Hardening & polish · 45 min
+## H12–H12.75 — Hardening & polish · 45 min
 
 - [ ] Playwright E2E happy path green in CI
 - [ ] axe a11y pass on 5 routes; fix contrast/focus/roles
@@ -171,7 +201,10 @@ stops here, the submission is already viable.
 
 **Commit:** `chore: hardening, a11y, security pass, README`
 
-## H12.25–H12.75 — Submission · 30 min
+## H12.75–H13.25 — Submission · 30 min
+
+> Everything below this line is **post-submission-critical**. If the window ends here,
+> the product is complete and shipped.
 
 - [ ] Rotate any key that could have been exposed
 - [ ] Final `.agent-logs/` commit; verify unedited and complete
@@ -187,39 +220,65 @@ stops here, the submission is already viable.
 | Time | Beat |
 |---|---|
 | 0:00–0:30 | Camera on. What azaisai.com is, the core loop I identified, the one-line thesis: rebuild the loop properly, build foundations for the orbit. |
-| 0:30–1:00 | Product judgement: what I cut (reposter, 11 admin routes, phone wall, 6 locales, 3 analytics vendors) and why. This is the highest-signal 30 seconds. |
+| 0:30–1:00 | Product judgement: what I cut (reposter, 10 of 11 admin routes, phone wall, 6 locales, 3 analytics vendors) and why — plus the $0 constraint and what it forced. Highest-signal 30 seconds. |
 | 1:00–2:00 | Live: sign in with an email code, generate a real image, download it. |
-| 2:00–3:00 | **Compare mode** — one prompt, three models, fired in parallel, honest per-stage progress. Contrast with the original's fake 95% bar. |
-| 3:00–3:40 | A generation fails → the ledger shows the automatic refund. Trust, demonstrated not claimed. |
+| 2:00–3:00 | **The headline: a 20s video from an 8s model.** Show the storyboard Gemini planned, edit a beat, generate. Explain last-frame chaining while segment 2 runs. Honest "segment 2 of 3" progress vs the original's fake 95% bar. |
+| 3:00–3:40 | A segment fails → partial delivery + a per-segment refund in the ledger. Trust, demonstrated not claimed. |
 | 3:40–4:00 | Share permalink + unfurl. The growth loop the original is missing. |
 | 4:00–4:30 | Admin: cap a customer's daily spend live, show the resolved policy with its `source` column and the audit row. Then one architecture slide — append-only ledger, workspace-keyed rows, provider abstraction with a mock, transactional outbox. What that buys in month six. |
 
+## Post-submission — Phase 2
+
+Deferred by design ([17](17-BACKEND-SERVICES.md) §Phase 2): extract `apps/api` for the
+public `/v1` surface and webhooks. Two deploy targets and a network hop, for benefits
+that don't show up at demo scale.
+
+Note that **Phase 1 is no longer deferred** — the free-tier rework moved the worker onto
+Cloud Run at H7.5–H9, because ffmpeg for long-form video cannot run on Vercel at all
+([18](18-FREE-TIER-STACK.md)). R4 closes inside the window rather than after it.
+
 ## Schedule honesty
 
-Adding the admin control plane ([14](14-ADMIN-DASHBOARD.md)) pushes the nominal end to
-**H12.75 — over the window.** That's stated rather than hidden, and it's why the cut
-order below exists and is decided now. The realistic read: the buffer that used to sit
-between H11 and H12 is gone, so anything that slips comes out of the cut list rather
-than out of the submission deadline. If H6.5 arrives with the pipeline unfinished, cuts
+Three rounds of additions pushed the nominal end past the window, stated rather than
+hidden:
+
+| Addition | Cost | Running end |
+|---|---|---|
+| Admin control plane ([14](14-ADMIN-DASHBOARD.md)) | +75 min | H12.75 |
+| Free-tier verification gate ([18](18-FREE-TIER-STACK.md)) | +20 min | H13 |
+| Long-form video ([19](19-LONG-VIDEO.md)) | +105 min | **H13.25** |
+| *(offset)* compare mode → Tier 2 | −30 min | |
+| *(offset)* worker no longer a separate phase | −75 min | |
+
+**Submission completes at H13.25** — about 75 minutes over. The offsets are real: long
+video displaced compare mode as the headline differentiator, and the Cloud Run worker
+absorbed what was a separate post-submission phase.
+
+The monorepo layout at H1 is not optional — 15 minutes there, over an hour at H10.
+
+The buffer between H11 and H12 is long gone, so anything that slips comes out of the cut
+list rather than out of the deadline. If H6.5 arrives with the pipeline unfinished, cuts
 1 and 2 fire immediately rather than at H11.
 
 ## Cut order under time pressure
 
-Decided **now**, so it's not decided badly at hour 10:
+Decided **now**, so it's not decided badly at hour 12:
 
-1. Prompt enhance/variate (keep the preset palette — it solves the blank-textarea
-   problem on its own)
+1. Prompt enhance/variate (keep the preset palette and the scene decomposer — the
+   decomposer is load-bearing for long video, the rewrite button isn't)
 2. Admin Tier B — the generations inspector and model toggles
    ([14](14-ADMIN-DASHBOARD.md) §10). Tier A stays.
 3. Stripe (keep the pricing page; note test mode not wired)
 4. History filters (keep the grid + rerun)
-5. Image studio (video alone proves the loop)
+5. **Long video beyond 16s** — ship 2-segment chaining, defer 3–4 segments. Proves the
+   mechanism at half the quota cost.
+6. Image studio (video alone proves the loop)
 
-Never cut: capture logging, the ledger, the honest progress state machine, compare
-mode, share links, the mock provider, the limits engine + enforcement, or the
-a11y/security pass. Those are the submission's actual argument.
+Never cut: capture logging, the ledger, the honest progress state machine, long-form
+chaining (at least 2 segments), share links, the mock provider, the limits engine +
+enforcement, or the a11y/security pass. Those are the submission's actual argument.
 
-Note the ordering change: **admin Tier A now outranks prompt enhance and Stripe.** A
-limits control plane demonstrates more engineering judgement in a five-minute
-walkthrough than an LLM rewrite button does, and enforcement without a way to configure
-it is the gap that prompted the whole doc.
+Two ordering changes worth noting. **Admin Tier A outranks prompt enhance and Stripe** —
+a limits control plane demonstrates more engineering judgement in five minutes than an
+LLM rewrite button does. And **compare mode dropped to Tier 2** entirely: on a free tier
+it multiplies quota consumption for a demo that long-form video now makes better.

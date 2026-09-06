@@ -79,7 +79,13 @@ this, the outbox is exactly the right shape to put a real queue in front of.
 
 ---
 
-### ADR-005 — fal.ai as the primary provider, behind an adapter
+### ADR-005 — ~~fal.ai~~ → **Google AI Studio**, behind an adapter
+
+> **Superseded by [18](18-FREE-TIER-STACK.md)** — the $0 constraint rules out
+> pay-as-you-go. Gemini API free tier is now the primary provider. The adapter
+> interface is unchanged, which is the whole point of the original decision: swapping
+> the vendor was a new file plus registry edits, not a rewrite. Original reasoning
+> retained below.
 
 **Decision.** One aggregator key covering Veo, Sora-class, Runway-class, nano-banana
 and flux, behind a `ModelProvider` interface.
@@ -238,14 +244,86 @@ failure mode that turns a bug into a breach.
 
 ---
 
+### ADR-014 — Modular monolith + a dedicated worker, not microservices
+
+**Decision.** One `packages/core` holding all business logic, consumed in-process by
+`apps/web`, and by two always-on processes (`apps/api`, `apps/worker`) as they're
+extracted. Monorepo layout from commit one. ([17](17-BACKEND-SERVICES.md))
+
+**Rejected.** (a) Everything in Next.js route handlers forever — leaves R4 open, since
+a 25MB artifact download genuinely can exceed a 60s function. (b) Microservices — a
+generation service, a billing service, a user service, over the network.
+
+**Why.** The only part of this system that is a poor fit for serverless is the
+pipeline: long downloads, real concurrency, cron granularity, and a persistent
+connection pool. That's one extraction, not five. Splitting further would trade the
+single most valuable property in the design — the credit debit and the generation
+insert committing together — for a distributed transaction and a saga. That's a
+downgrade in correctness sold as an upgrade in architecture.
+
+`web` deliberately calls `core` in-process rather than proxying through `api`: adding
+a network hop between a request the web app is already authenticated for and the
+database buys latency and a second failure mode, nothing else.
+
+**Consequence.** Three processes share one database, so schema changes must be
+deploy-order-safe (additive first — already the migration rule in
+[04](04-DATA-MODEL.md)). The monorepo costs 15 minutes at H1 and would cost over an
+hour at H10, which is why it is not deferred.
+
+---
+
+### ADR-015 — Long-form video by chained segments, not a longer model
+
+**Decision.** 20s output from an 8s model: Gemini Flash decomposes the prompt into
+consecutive beats, each segment after the first is seeded with the **last frame** of
+the previous one (image→video), then ffmpeg stitches and trims.
+([19](19-LONG-VIDEO.md))
+
+**Rejected.** (a) Naive concatenation of N independent clips — three unrelated shots
+with visible discontinuities in subject, lighting and location. Cheap, and looks it.
+(b) Waiting for a model with native long-form — not available on a free tier.
+
+**Why.** Last-frame seeding is what makes the joins work: clip N+1's first frame is
+generated *from* clip N's last frame, so a hard cut is nearly invisible — which in turn
+lets ffmpeg stream-copy instead of re-encoding. The LLM decomposition upgrades it
+further, because the beats form a narrative instead of three takes of the same
+sentence, and it gives the user a storyboard to edit before spending anything.
+
+**Consequence.** Quota cost scales with segments, so pricing is per generated segment
+(24 credits for a 20s video, stated openly). Failure handling gets more complex —
+per-segment retries and partial delivery — but partial delivery is strictly better for
+the user than an all-or-nothing 20-second job. Depends entirely on free-tier
+image→video seeding working, which is verified at H0.25 before anything is built.
+
+---
+
+### ADR-016 — Google Cloud Run for the worker, not Railway
+
+**Decision.** The pipeline worker runs as a Cloud Run container.
+
+**Rejected.** Railway (no meaningful free tier), Fly.io (free allowance shrank),
+Vercel functions (cannot run ffmpeg — ~70MB binary against a bundle limit, and a 60s
+cap against a job that needs minutes).
+
+**Why.** Genuinely free at our volume, runs a container so `ffmpeg` is an `apt-get`,
+**60-minute** request timeout, scales to zero, and it's the same Google account as the
+Gemini key. Long-form video is impossible without a real container, so this stopped
+being an optimisation and became a prerequisite.
+
+**Consequence.** R4 closes inside the window instead of after it. Invocation is
+fire-and-forget from `apps/web` plus a Cloud Scheduler safety net, authenticated with a
+service-account OIDC token.
+
+---
+
 ## Risk register
 
 | # | Risk | L | I | Mitigation | Trigger → action |
 |---|---|---|---|---|---|
 | R1 | Provider API keys unobtainable or rate-limited in time | M | H | Mock provider is Tier 0 and the demo works without any key | No key by H8 → ship mock-only, say so in the walkthrough |
-| R2 | Video generation cost runs away on a public link | M | H | Daily spend ceiling in code; free tier capped at 3 live/day; video limited to the fast tier; degrade to mock, don't error | 80% of cap → alert; 100% → auto-degrade |
+| R2 | ~~Cost~~ **quota** runs out on a public link | **H** | H | No bill to run away — the ceiling is requests/day. Per-workspace caps (2 video, 1 long video, 15 images); platform quota tracked; degrade to mock with a visible badge, never error ([18](18-FREE-TIER-STACK.md)) | 80% of daily quota → alert; 100% → auto-degrade for the UTC day |
 | R3 | Pipeline (H4–H6) overruns and eats the studio | M | H | It's on the critical path and scheduled first; the mock makes it testable in ms; the cut list is pre-decided | Not done by H6.5 → cut image studio and Stripe immediately |
-| R4 | Vercel serverless 60s limit kills a long artifact download | M | M | Streamed copy, not buffered; 90s lease means a killed worker's job is retried, not lost | Recurring → move download to a separate fn with `maxDuration=300` |
+| R4 | Vercel serverless 60s limit kills a long artifact download | M | M | Streamed copy, not buffered; 90s lease means a killed worker's job is retried, not lost. **Structurally closed** by the dedicated worker process ([17](17-BACKEND-SERVICES.md) Phase 1), which has no timeout | Recurring before Phase 1 lands → separate fn with `maxDuration=300` |
 | R5 | Supabase Realtime flaky under load | L | M | Client falls back to polling on disconnect with a "Reconnecting" chip; the row is always the source of truth | Disconnect rate > 5% → polling default |
 | R6 | Capture hook silently stops mid-build | L | **H** | Script never truncates and never blocks; writes `.capture-errors.log`; entry count verified at every commit checkpoint | Gap in the log → note it honestly in `CAPTURE-TEST.md`, do not backfill |
 | R7 | Secret leaked into `.agent-logs/` (which is public and unedited) | L | H | Working rule: secrets never enter a prompt; set via `vercel env add` and the dashboard. Pre-submission scan. Rotate anything suspect. | Any hit → rotate the key, disclose in the README |

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { MfaForm } from "@/features/auth/mfa-form";
+import { Wordmark } from "@/features/brand/wordmark";
 import { currentAal, getPlatformAdmin } from "@/lib/auth/platform-admin";
 import { afterMfaPath } from "@/lib/auth/post-login";
 import { createServerSupabase } from "@/lib/supabase/server";
@@ -26,9 +27,7 @@ export default async function MfaPage({
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-16">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-bg-elevated p-8 shadow-card">
-        <p className="font-mono text-xs tracking-[0.18em] text-accent uppercase">
-          AzaisAI
-        </p>
+        <Wordmark />
         <h1 className="mt-3 text-3xl text-fg">Authenticator</h1>
         <p className="mt-2 text-sm text-fg-muted">
           Admin access needs a 6-digit authenticator code for this session.

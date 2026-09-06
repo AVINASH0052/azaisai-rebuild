@@ -24,6 +24,9 @@ This folder is the complete plan, written **before** any application code.
 | 14 | [Admin dashboard & limits engine](14-ADMIN-DASHBOARD.md) | The control plane: per-client limits, enforcement, automated rules, admin authz. Supersedes the `/admin` cut in 02. |
 | 15 | [Git workflow](15-GIT-WORKFLOW.md) | How work lands on `main`, why trunk-based, and how `.agent-logs/` interleaves with commits. |
 | 16 | [Auth & routing](16-AUTH-AND-ROUTING.md) | One landing page, one sign-in form; admins route to `/admin`, everyone else to the studio. Step-up MFA, admin bootstrapping, demo access. |
+| 17 | [Backend services](17-BACKEND-SERVICES.md) | Monorepo, `packages/core` as the real backend, and the dedicated worker process that takes the pipeline off serverless. |
+| 18 | [Free-tier stack](18-FREE-TIER-STACK.md) | **$0 constraint.** Google AI Studio for generation, Cloud Run for the worker, and the limits that actually bind. Supersedes ADR-005 and the Railway plan. |
+| 19 | [Long-form video](19-LONG-VIDEO.md) | 20s output from an 8s model: scene decomposition, last-frame chaining, stitching, partial failure. |
 
 `research/` holds the raw artefacts the teardown was derived from (saved HTML,
 extracted JS config, screenshots).

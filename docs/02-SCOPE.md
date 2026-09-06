@@ -46,14 +46,14 @@ years later. Team invites and SSO cost days later and can wait.
 |---|---|---|
 | 1.1 | **Real progress state machine** over realtime, with honest per-stage labels | Replaces the fake 95% bar. Most-watched surface in the product. |
 | 1.2 | **Parallel job tray** — fire N generations, watch them all, compare | Unlocks the actual value of a multi-model aggregator. The original can't do this. |
-| 1.3 | **Model comparison run** — one prompt, 2–4 models, side by side | The killer demo for a walkthrough video, and the honest answer to "which model should I use?" |
+| 1.3 | ~~Model comparison run~~ → **Long-form video** ([19](19-LONG-VIDEO.md)) | Compare mode dropped to Tier 2: on a free tier it multiplies quota for a demo that long video now does better. 20s continuous output from an 8s model is the stronger differentiator — the original tops out at 8s. |
 | 1.4 | Image studio (all params) | Cheap to add once video works; images are fast and cheap to generate, which makes the live demo actually usable by strangers. |
 | 1.5 | Prompt library + Enhance/Variation via Claude | Kills the blank-textarea problem. |
 | 1.6 | **Public shareable permalink** per generation, with OG image | Closes the growth loop the original is missing. |
 | 1.7 | Credits page as a real **ledger**, not a number | Trust. Every debit, credit, refund, with reason. |
 | 1.8 | Stripe subscriptions + top-ups (test mode) with webhook-driven grants | Proves the money path end to end. |
 | 1.9 | Auto-refund on failure, visible in the ledger | The original promises it in the FAQ; we show it. |
-| 1.10 | **Limits engine + admin control plane** ([14](14-ADMIN-DASHBOARD.md)) | Per-client limits that are configurable, enforced at four points, clamped globally during incidents, and audited. The thing that makes a metered product operable by someone who isn't the person who wrote it. |
+| 1.10 | **Limits engine + admin control plane** ([14](14-ADMIN-DASHBOARD.md)) | Per-client limits that are configurable, enforced at four points, clamped globally during incidents, and audited. On a free tier this stops being optional — it's what rations a finite daily quota across strangers. |
 
 ## Tier 2 — foundations laid, features deferred (schema + seams exist, UI doesn't)
 
@@ -85,7 +85,8 @@ Each with the reason, because "what you left out" is scored.
 | **GA4 + TikTok pixel + PostHog** | Three analytics vendors on a 12h rebuild is theatre. One structured event stream to the DB (`analytics_events`), which is where they'd all read from anyway. |
 | **6 locales / 11 currencies at runtime** | Ship `en` + USD. Everything is behind `t()` and `price_in_cents`, so adding them is data, not code. |
 | **Marketing homepage with 40-image marquee** | We ship a landing page, but a lean one — hero, live gallery pulled from real generations, three-step explainer, pricing, CTA. The original's homepage is 200KB of HTML for a product whose value is behind a login. |
-| **1080p / premium video tiers in the live demo** | Cost control. Model catalogue lists them; the live deployment caps to fast/cheap models under a hard spend ceiling. Stated openly in the UI, not hidden. |
+| **1080p / premium video tiers in the live demo** | Quota control ([18](18-FREE-TIER-STACK.md)). Catalogue lists them; the deployment caps to what the free tier allows, degrading to mock with a visible badge. Stated openly in the UI, not hidden. |
+| **Multi-vendor catalogue** (Sora, Runway) | Only Google is free. Those models stay in the registry as `mock_only` with an honest badge rather than being hidden — pretending to offer models we can't call would be the dishonest option. |
 
 ---
 

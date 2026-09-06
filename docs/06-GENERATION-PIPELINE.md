@@ -154,6 +154,14 @@ hour, with the user's credits back.
 
 ---
 
+## Long-form video
+
+A generation may be a **parent with N chained segments** — see
+[19](19-LONG-VIDEO.md). It reuses this state machine wholesale: each segment is its own
+row with its own status, retries, and refund; the parent reaches `ready` only when every
+segment lands and the stitch succeeds. Partial delivery (segments 1..k of N) is a real
+terminal outcome with a partial refund, not an error.
+
 ## Storage & delivery
 
 1. Stream provider URL → Supabase Storage private bucket

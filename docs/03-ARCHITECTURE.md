@@ -22,6 +22,12 @@
 
 ## Layering
 
+> **Superseded in part by [17](17-BACKEND-SERVICES.md).** The layers below are correct;
+> their *physical* home is a pnpm workspace from commit one — `apps/web` plus
+> `packages/{core,db,providers,contracts,config}` — so that extracting an always-on
+> worker later is a folder move rather than a rewrite. The `src/` tree shown here maps
+> onto `apps/web` + `packages/*`.
+
 Strict dependency direction. Nothing points back up.
 
 ```
