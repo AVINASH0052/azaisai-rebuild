@@ -13,8 +13,15 @@ import {
   fallbackBeats,
   segmentCount,
 } from "@/providers/long-video";
-import { debitCredits, readCredits, refundCredits } from "./credits-store";
+import {
+  debitCredits,
+  formatCredits,
+  readCredits,
+  refundCredits,
+  unlimitedCredits,
+} from "./credits-store";
 import { saveJob } from "./local-jobs";
+import { captureLastFrame } from "./last-frame";
 
 const field =
   "w-full rounded-xl border border-border bg-bg-elevated px-3 py-2.5 text-fg shadow-sm outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/40";
@@ -30,7 +37,7 @@ export function Studio({ mode }: { mode: Kind }) {
   const model = models.find((m) => m.id === modelId) ?? models[0];
   const [prompt, setPrompt] = useState("");
   const [aspect, setAspect] = useState(model?.capabilities.aspects[0] ?? "16:9");
-  const [durationSec, setDurationSec] = useState(8);
+  const [durationSec, setDurationSec] = useState(6);
   const [style, setStyle] = useState<(typeof IMAGE_STYLES)[number]>("None");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +48,8 @@ export function Studio({ mode }: { mode: Kind }) {
     kind: Kind;
     poster: string;
     video?: string;
+    videos?: string[];
+    live?: boolean;
   } | null>(null);
   const [balance, setBalance] = useState(5);
   const [beats, setBeats] = useState<Beat[]>([]);
@@ -70,7 +79,7 @@ export function Studio({ mode }: { mode: Kind }) {
     () => (model ? quoteCredits(model, mode === "video" ? durationSec : undefined) : 0),
     [model, mode, durationSec],
   );
-  const canAfford = balance >= cost;
+  const canAfford = unlimitedCredits() || balance >= cost;
 
   async function planBeats() {
     if (!prompt.trim() || mode !== "video" || segments <= 1) return;
@@ -145,6 +154,12 @@ export function Studio({ mode }: { mode: Kind }) {
       });
       const json = (await res.json()) as {
         id?: string;
+        provider?: string;
+        status?: string;
+        outputUrl?: string;
+        outputUrls?: string[];
+        operation?: string;
+        segments?: number;
         error?: { message: string };
       };
       if (!res.ok || !json.id) {
@@ -154,6 +169,7 @@ export function Studio({ mode }: { mode: Kind }) {
         return;
       }
       const jobId = json.id;
+      const live = json.provider === "google";
       saveJob({
         id: jobId,
         kind: mode,
@@ -165,40 +181,123 @@ export function Studio({ mode }: { mode: Kind }) {
         createdAt: Date.now(),
         status: "queued",
       });
+      const finish = (outputUrl?: string, outputUrls?: string[]) => {
+        const clips =
+          mode === "video"
+            ? (outputUrls?.length ? outputUrls : [outputUrl ?? "/mock/flower.mp4"])
+            : undefined;
+        const poster =
+          mode === "image"
+            ? (outputUrl ?? assetUrl(mode, prompt.trim(), aspect, model.id))
+            : assetUrl(mode, prompt.trim(), aspect, model.id);
+        setResult({
+          id: jobId,
+          kind: mode,
+          poster,
+          video: clips?.[0],
+          videos: clips,
+          live,
+        });
+        saveJob({
+          id: jobId,
+          kind: mode,
+          modelId: model.id,
+          modelLabel: model.label,
+          prompt: prompt.trim(),
+          aspect,
+          cost,
+          createdAt: Date.now(),
+          status: "ready",
+        });
+      };
+      if (json.status === "ready") {
+        finish(json.outputUrl, json.outputUrls);
+        return;
+      }
+      if (live && !json.operation) {
+        refundCredits(cost);
+        setError("Google did not return a Veo operation.");
+        return;
+      }
+      let operation = json.operation;
+      let segment = 0;
+      let videoUris: string[] = [];
+      let completedOps: string[] = [];
+      let seedImage: { mimeType: string; data: string } | undefined;
       for (;;) {
-        await new Promise((r) => setTimeout(r, 350));
-        const poll = await fetch(`/api/generations/${jobId}`);
+        if (!seedImage) await new Promise((r) => setTimeout(r, live ? 2000 : 350));
+        const poll = live
+          ? await fetch("/api/generations/progress", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: jobId,
+                modelId: model.id,
+                aspect,
+                durationSec: mode === "video" ? durationSec : undefined,
+                operation,
+                segment,
+                segments: json.segments ?? segments,
+                videoUris,
+                completedOps,
+                seedImage,
+                storyboard:
+                  mode === "video" && segments > 1
+                    ? (beats.length === segments
+                        ? beats
+                        : fallbackBeats(prompt.trim(), durationSec))
+                    : undefined,
+              }),
+            })
+          : await fetch(`/api/generations/${jobId}`);
+        seedImage = undefined;
         const body = (await poll.json()) as {
           status?: string;
           progress?: number;
           stage?: string;
+          outputUrl?: string;
+          outputUrls?: string[];
+          lastUrl?: string;
+          operation?: string;
+          segment?: number;
+          videoUris?: string[];
+          completedOps?: string[];
+          error?: { message: string };
         };
+        if (!poll.ok) {
+          refundCredits(cost);
+          setError(body.error?.message ?? "Generation failed. Credits returned.");
+          break;
+        }
         setProgress(body.progress ?? 0);
         setStage(body.stage ?? body.status ?? "Working");
+        if (body.operation) operation = body.operation;
+        if (typeof body.segment === "number") segment = body.segment;
+        if (body.videoUris) videoUris = body.videoUris;
+        if (body.completedOps) completedOps = body.completedOps;
+        if (body.status === "need_seed") {
+          if (!body.lastUrl) {
+            refundCredits(cost);
+            setError("Could not load the last frame.");
+            break;
+          }
+          setStage("Capturing last frame");
+          try {
+            seedImage = await captureLastFrame(body.lastUrl);
+          } catch {
+            refundCredits(cost);
+            setError("Could not capture the last frame.");
+            break;
+          }
+          continue;
+        }
         if (body.status === "ready") {
-          const poster = assetUrl(mode, prompt.trim(), aspect, model.id);
-          setResult({
-            id: jobId,
-            kind: mode,
-            poster,
-            video: mode === "video" ? "/mock/flower.mp4" : undefined,
-          });
-          saveJob({
-            id: jobId,
-            kind: mode,
-            modelId: model.id,
-            modelLabel: model.label,
-            prompt: prompt.trim(),
-            aspect,
-            cost,
-            createdAt: Date.now(),
-            status: "ready",
-          });
+          finish(body.outputUrl, body.outputUrls);
           break;
         }
         if (body.status === "failed") {
           refundCredits(cost);
-          setError("Generation failed. Credits returned.");
+          setError(body.stage ?? "Generation failed. Credits returned.");
           break;
         }
       }
@@ -363,8 +462,8 @@ export function Studio({ mode }: { mode: Kind }) {
               </button>
             </div>
             <p className="mt-1 text-xs text-fg-subtle">
-              Each beat continues from the last frame of the one before it. Edit
-              before you spend.
+              Each beat starts from the last frame of the one before it. Clips
+              play in order — no Cloud Run stitch.
             </p>
             {(beats.length ? beats : fallbackBeats(prompt.trim() || "…", durationSec)).map(
               (beat) => (
@@ -423,8 +522,10 @@ export function Studio({ mode }: { mode: Kind }) {
           {mode === "video"
             ? ` · ${segments} × 8s · ${durationSec}s delivered`
             : ""}
-          {" · "}balance {balance}
-          {canAfford ? ` → ${balance - cost}` : " · not enough"}
+          {" · "}
+          {unlimitedCredits()
+            ? "unlimited"
+            : `balance ${formatCredits(balance)}${canAfford ? ` → ${balance - cost}` : " · not enough"}`}
         </div>
         {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
         <Button
@@ -437,7 +538,7 @@ export function Studio({ mode }: { mode: Kind }) {
           {busy ? "Working…" : "Generate"}
         </Button>
         <p className="mt-2 text-center font-mono text-[11px] text-fg-subtle">
-          ⌘↵ · mock provider
+          ⌘↵ · {model?.availability === "live" ? "Google when live" : "mock"}
         </p>
       </section>
 
@@ -445,12 +546,11 @@ export function Studio({ mode }: { mode: Kind }) {
         <div className="flex min-h-0 flex-1 items-center justify-center">
           {result ? (
             <div className="w-full max-w-3xl">
-              {result.video ? (
-                <video
-                  className="w-full rounded-2xl bg-ink"
-                  controls
+              {result.videos?.length ? (
+                <ClipPlaylist
+                  id={result.id}
+                  clips={result.videos}
                   poster={result.poster}
-                  src={result.video}
                 />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -460,20 +560,17 @@ export function Studio({ mode }: { mode: Kind }) {
                   className="mx-auto max-h-[70vh] w-full rounded-2xl object-contain"
                 />
               )}
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <a
-                  className="rounded-full bg-ink px-4 py-2 text-sm text-bg-elevated"
-                  href={result.video ?? result.poster}
-                  download={`hearth-${result.id}${result.video ? ".mp4" : ".svg"}`}
-                >
-                  Download
-                </a>
-                <p className="text-sm text-fg-muted">
-                  {mode === "video"
+              <p className="mt-4 text-sm text-fg-muted">
+                {result.live
+                  ? mode === "video"
+                    ? result.videos && result.videos.length > 1
+                      ? "Veo clips chained from the last frame. They play in order."
+                      : "Rendered with Veo."
+                    : "Rendered with Gemini Flash Image."
+                  : mode === "video"
                     ? "Sample clip while the live provider is mocked."
                     : "Still rendered from your prompt."}
-                </p>
-              </div>
+              </p>
             </div>
           ) : stage ? (
             <div className="w-full max-w-md px-4">
@@ -495,6 +592,48 @@ export function Studio({ mode }: { mode: Kind }) {
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function ClipPlaylist({
+  id,
+  clips,
+  poster,
+}: {
+  id: string;
+  clips: string[];
+  poster: string;
+}) {
+  const [index, setIndex] = useState(0);
+  const src = clips[index] ?? clips[0];
+  return (
+    <div>
+      <video
+        key={src}
+        className="w-full rounded-2xl bg-ink"
+        controls
+        autoPlay={index > 0}
+        poster={index === 0 ? poster : undefined}
+        src={src}
+        onEnded={() => {
+          if (index + 1 < clips.length) setIndex(index + 1);
+        }}
+      />
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <a
+          className="rounded-full bg-ink px-4 py-2 text-sm text-bg-elevated"
+          href={src}
+          download={`hearth-${id}-${index + 1}.mp4`}
+        >
+          Download
+        </a>
+        {clips.length > 1 ? (
+          <p className="font-mono text-xs text-fg-subtle">
+            Clip {index + 1} of {clips.length}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

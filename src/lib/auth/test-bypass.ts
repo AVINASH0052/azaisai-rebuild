@@ -2,7 +2,8 @@
 
 export const TEST_BYPASS_EMAIL = "dev@azaisai.test";
 export const TEST_BYPASS_COOKIE = "azai_test_bypass";
-export const TEST_BYPASS_CREDITS = 5;
+/** Enough for several 6s Veo Fast clips (12 cr each: 1 × 8s segment × 1.5). */
+export const TEST_BYPASS_CREDITS = 80;
 
 export function testBypassEnabled() {
   return process.env.NEXT_PUBLIC_AUTH_TEST_BYPASS === "1";

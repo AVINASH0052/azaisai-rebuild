@@ -23,7 +23,7 @@ const STEPS = [
 ];
 
 const PLANS = [
-  { name: "Free", price: "$0", credits: "5 one-time", note: "No phone wall", highlight: false },
+  { name: "Free", price: "$0", credits: "80 one-time", note: "Enough for 6s+ video", highlight: false },
   { name: "Starter", price: "$16.90", credits: "60 / mo", note: "3 at once", highlight: false },
   { name: "Pro", price: "$32.90", credits: "180 / mo", note: "Most people start here", highlight: true },
   { name: "Business", price: "$65.90", credits: "420 / mo", note: "Commercial licence", highlight: false },
@@ -58,7 +58,7 @@ export default function Home() {
           </p>
           <div className="mt-8">
             <Button asChild size="lg" className="h-11 px-5">
-              <Link href="/auth/login">Get 5 free credits</Link>
+              <Link href="/auth/login">Get 80 free credits</Link>
             </Button>
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function Home() {
         </div>
         <div className="mt-10">
           <Button asChild size="lg" className="h-11 px-5">
-            <Link href="/auth/login">Start with 5 credits</Link>
+            <Link href="/auth/login">Start with 80 credits</Link>
           </Button>
         </div>
       </section>

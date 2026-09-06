@@ -2,7 +2,7 @@ export const SEGMENT_SEC = 8;
 export const MIN_VIDEO_SEC = 4;
 export const MAX_VIDEO_SEC = 20;
 export const MAX_SEGMENTS = Math.ceil(MAX_VIDEO_SEC / SEGMENT_SEC);
-export const DURATION_PRESETS = [8, 12, 16, 20] as const;
+export const DURATION_PRESETS = [6, 8, 12, 16, 20] as const;
 
 export function clampDuration(value: number) {
   if (!Number.isFinite(value)) return 8;

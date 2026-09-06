@@ -24,7 +24,9 @@ function quoteCredits(model, durationSec) {
   return Math.ceil(model.credits.rate * generatedSeconds(duration));
 }
 
+assert.equal(quoteCredits({ credits: { per: "second", rate: 1.5 } }, 6), 12);
 assert.equal(quoteCredits({ credits: { per: "second", rate: 1.5 } }, 8), 12);
+assert.ok(80 >= quoteCredits({ credits: { per: "second", rate: 1.5 } }, 6));
 assert.equal(quoteCredits({ credits: { per: "second", rate: 1 } }, 20), 24);
 assert.equal(quoteCredits({ credits: { per: "second", rate: 1 } }, 12), 16);
 assert.equal(quoteCredits({ credits: { per: "second", rate: 1 } }, 5), 8);

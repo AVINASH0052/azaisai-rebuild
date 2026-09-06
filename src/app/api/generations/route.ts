@@ -9,6 +9,11 @@ import { getModel } from "@/providers/registry";
 import { quoteCredits } from "@/providers/quote";
 import { createJobId } from "@/providers/mock-job";
 import { isVideoDuration, segmentCount } from "@/providers/long-video";
+import { env } from "@/lib/env";
+import { generateGoogleImage, googleLive, submitGoogleVideo } from "@/providers/google";
+import { createLiveJobId } from "@/providers/pipeline";
+
+export const maxDuration = 60;
 
 const bodySchema = z.object({
   modelId: z.string(),
@@ -42,7 +47,7 @@ export async function POST(req: Request) {
     if (!parsed.success) {
       throw new AppError("INVALID_REQUEST", "Prompt and model are required.");
     }
-    const { modelId, kind, aspect, durationSec, style, storyboard } = parsed.data;
+    const { modelId, kind, aspect, durationSec, style, storyboard, prompt } = parsed.data;
     const model = getModel(modelId);
     if (!model || model.kind !== kind) {
       throw new AppError("INVALID_REQUEST", "Unknown model for this studio.");
@@ -61,15 +66,46 @@ export async function POST(req: Request) {
       throw new AppError("INVALID_REQUEST", "Storyboard length must match segment count.");
     }
     const cost = quoteCredits(model, durationSec);
+    const firstPrompt = storyboard?.[0]?.prompt ?? prompt;
+
+    if (googleLive(model)) {
+      try {
+        if (kind === "image") {
+          const outputUrl = await generateGoogleImage(model, firstPrompt);
+          return NextResponse.json(
+            {
+              id: createLiveJobId("image"),
+              cost,
+              segments: 1,
+              provider: "google",
+              status: "ready",
+              outputUrl,
+            },
+            { status: 202, headers: { "X-Request-Id": id } },
+          );
+        }
+        const handle = await submitGoogleVideo(model, { prompt: firstPrompt, aspect });
+        const jobId = createLiveJobId("video", { durationSec, segments });
+        void notifyWorker({ type: "ping", id: jobId });
+        return NextResponse.json(
+          {
+            id: jobId,
+            cost,
+            segments,
+            provider: "google",
+            operation: handle.jobId,
+            estimatedSeconds: model.estimatedSeconds * segments,
+          },
+          { status: 202, headers: { "X-Request-Id": id } },
+        );
+      } catch (err) {
+        if (env.PROVIDER_MODE !== "auto") throw err;
+        // fall through to mock so the studio still delivers a file
+      }
+    }
+
     const jobId = createJobId(kind, { durationSec, segments });
-    void notifyWorker({
-      type: "advance",
-      id: jobId,
-      kind,
-      durationSec,
-      segments,
-      storyboard,
-    });
+    void notifyWorker({ type: "ping", id: jobId });
     return NextResponse.json(
       {
         id: jobId,

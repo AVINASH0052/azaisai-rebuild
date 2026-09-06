@@ -8,6 +8,7 @@ export type Model = {
   kind: Kind;
   badge?: string;
   availability: Availability;
+  providerModel?: string;
   credits: { per: "second" | "image"; rate: number };
   capabilities: {
     audio?: boolean;
@@ -40,6 +41,7 @@ export const MODELS: Model[] = [
     kind: "video",
     badge: "Fast",
     availability: "live",
+    providerModel: "veo-3.1-fast-generate-preview",
     credits: { per: "second", rate: 1.5 },
     capabilities: {
       audio: true,
@@ -55,6 +57,7 @@ export const MODELS: Model[] = [
     kind: "video",
     badge: "New",
     availability: "live",
+    providerModel: "veo-3.1-generate-preview",
     credits: { per: "second", rate: 3 },
     capabilities: {
       audio: true,
@@ -69,6 +72,7 @@ export const MODELS: Model[] = [
     vendor: GOOGLE,
     kind: "video",
     availability: "live",
+    providerModel: "veo-2.0-generate-001",
     credits: { per: "second", rate: 3 },
     capabilities: {
       aspects: VIDEO_ASPECTS,
@@ -155,6 +159,7 @@ export const MODELS: Model[] = [
     kind: "image",
     badge: "New",
     availability: "live",
+    providerModel: "gemini-2.5-flash-image",
     credits: { per: "image", rate: 1 },
     capabilities: { aspects: IMAGE_ASPECTS, styles: [...IMAGE_STYLES] },
     estimatedSeconds: 8,
@@ -166,6 +171,7 @@ export const MODELS: Model[] = [
     kind: "image",
     badge: "4K",
     availability: "live",
+    providerModel: "gemini-2.5-flash-image",
     credits: { per: "image", rate: 2 },
     capabilities: { aspects: IMAGE_ASPECTS, styles: [...IMAGE_STYLES] },
     estimatedSeconds: 15,

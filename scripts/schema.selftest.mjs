@@ -37,8 +37,8 @@ if (missing.length) {
   console.error("schema self-test missing", missing.join(", "));
   process.exit(1);
 }
-if (!sql.includes("signup_grant") || !sql.includes("'signup', 5")) {
-  console.error("welcome grant of 5 credits missing");
+if (!sql.includes("signup_grant") || !sql.includes("'signup', 80")) {
+  console.error("welcome grant of 80 credits missing");
   process.exit(1);
 }
 console.log("schema self-test ok");

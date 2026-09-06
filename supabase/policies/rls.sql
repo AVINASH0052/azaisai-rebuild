@@ -107,12 +107,12 @@ begin
   );
 
   insert into credit_grants (id, workspace_id, kind, amount, consumed, source_ref)
-  values (grant_row_id, ws_id, 'signup', 5, 0, 'signup:' || new.id::text);
+  values (grant_row_id, ws_id, 'signup', 80, 0, 'signup:' || new.id::text);
 
   insert into credit_ledger (
     workspace_id, amount, reason, balance_after, grant_id, idempotency_key
   )
-  values (ws_id, 5, 'signup_grant', 5, grant_row_id, 'signup:' || new.id::text);
+  values (ws_id, 80, 'signup_grant', 80, grant_row_id, 'signup:' || new.id::text);
 
   insert into audit_events (
     workspace_id, actor_user_id, actor_type, action, subject_type, subject_id
