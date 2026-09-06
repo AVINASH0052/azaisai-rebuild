@@ -12,7 +12,8 @@
     "schema:test": "node scripts/schema.selftest.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:apply": "node scripts/db-apply.mjs"
+    "db:apply": "node scripts/db-apply.mjs",
+    "supabase:bootstrap": "node scripts/supabase-bootstrap.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
