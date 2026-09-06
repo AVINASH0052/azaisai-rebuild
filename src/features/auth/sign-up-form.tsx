@@ -9,7 +9,6 @@ import {
   MIN_PASSWORD,
   normalizeEmail,
   passwordReady,
-  signupAfterResponse,
 } from "@/lib/auth/password-flow";
 import { safeReturnUrl } from "@/lib/auth/return-url";
 import { createBrowserSupabase } from "@/lib/supabase/client";
@@ -71,30 +70,25 @@ export function SignUpForm({
     setPending(true);
     setError(null);
     try {
-      const supabase = createBrowserSupabase();
-      const { data, error: err } = await supabase.auth.signUp({
-        email: normalizeEmail(email),
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?confirmed=1`,
-        },
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: normalizeEmail(email),
+          password,
+          redirectTo: `${window.location.origin}/auth/callback?confirmed=1`,
+        }),
       });
-      const next = signupAfterResponse({
-        message: err?.message,
-        code: err?.code,
-        identities: data.user?.identities,
-        hasSession: Boolean(data.session),
-      });
-      if (next === "wait" || next === "error") {
-        setError(friendlyPasswordError(err?.message ?? "", err?.code));
+      const json = (await res.json()) as {
+        ok?: boolean;
+        confirm?: boolean;
+        error?: string;
+      };
+      if (!res.ok || !json.ok) {
+        setError(json.error ?? "Something went wrong. Try again.");
         return;
       }
-      if (next === "exists") {
-        setError("That email already has an account. Sign in instead.");
-        return;
-      }
-      if (data.session) await supabase.auth.signOut();
-      setMode(next === "ready" ? "ready" : "sent");
+      setMode(json.confirm ? "sent" : "ready");
     } finally {
       inFlight.current = false;
       setPending(false);
@@ -163,8 +157,7 @@ export function SignUpForm({
     <>
       <h1 className="text-3xl text-fg">Create an account</h1>
       <p className="mt-2 text-sm text-fg-muted">
-        Enter your email and a new password. We will send a confirmation link.
-        After you confirm, sign in with that password.
+        Enter your email and a new password. Then sign in with that password.
       </p>
       <form
         className="mt-8 space-y-4"
