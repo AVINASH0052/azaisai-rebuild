@@ -49,7 +49,7 @@ export function AdminUsers() {
       const res = await fetch("/api/admin/users", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ userId: user.id, ...body }),
+        body: JSON.stringify({ userId: user.id, email: user.email, ...body }),
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) {

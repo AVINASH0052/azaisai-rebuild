@@ -15,6 +15,7 @@ import {
 
 const patchSchema = z.object({
   userId: z.string().uuid(),
+  email: z.string().email().optional(),
   credits: z.number().int().min(0).max(10_000).optional(),
   banned: z.boolean().optional(),
 });
@@ -147,7 +148,7 @@ export async function PATCH(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "User and a change are required." }, { status: 400 });
   }
-  const { userId, credits, banned } = parsed.data;
+  const { userId, email, credits, banned } = parsed.data;
   if (credits == null && banned == null) {
     return NextResponse.json({ error: "Assign credits or change the ban." }, { status: 400 });
   }
@@ -157,6 +158,7 @@ export async function PATCH(req: Request) {
     ? await gotrue.auth.admin.getUserById(userId)
     : null;
   const targetEmail =
+    email ??
     listed?.data.user?.email ??
     (userId === user.id ? user.email : null);
   if (banned && isDemoAdminEmail(targetEmail)) {
@@ -164,9 +166,13 @@ export async function PATCH(req: Request) {
   }
 
   const patch: Record<string, unknown> = {};
+  if (targetEmail) patch.email = targetEmail;
   if (credits != null) patch.credits = credits;
   if (banned != null) patch.banned = banned;
-  await writeAppUser(supabase, userId, patch);
+  const saved = await writeAppUser(supabase, userId, patch);
+  if (!saved.ok) {
+    return NextResponse.json({ error: saved.error }, { status: 400 });
+  }
 
   const meta: Record<string, unknown> = {};
   if (credits != null) meta.credits = credits;

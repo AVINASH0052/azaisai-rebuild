@@ -29,4 +29,12 @@ assert.deepEqual(usageAfterSpend({ generations: 2, credits_spent: 12 }, 9), {
   credits_spent: 21,
 });
 assert.equal(usageFromMeta({ banned: "true" }).banned, true);
+
+function writeAppUserPlan(hasRow, email) {
+  if (hasRow) return "update";
+  return email ? "insert" : "fail";
+}
+assert.equal(writeAppUserPlan(true, null), "update");
+assert.equal(writeAppUserPlan(false, "a@b.co"), "insert");
+assert.equal(writeAppUserPlan(false, null), "fail");
 console.log("admin-usage.selftest ok");

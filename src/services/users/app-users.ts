@@ -112,15 +112,43 @@ export async function isUserBanned(supabase: SupabaseClient, user: User) {
   return isBannedMeta(user.user_metadata);
 }
 
+/** Update an existing registry row; insert only when we have an email. */
+export function writeAppUserPlan(hasRow: boolean, email?: string | null) {
+  if (hasRow) return "update";
+  return email ? "insert" : "fail";
+}
+
 export async function writeAppUser(
   supabase: SupabaseClient,
   userId: string,
   patch: Record<string, unknown>,
 ) {
-  await supabase
+  const now = new Date().toISOString();
+  const { email: emailField, ...fields } = patch;
+  const email = typeof emailField === "string" ? emailField : "";
+  const { data, error } = await supabase
     .from("app_users")
-    .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq("user_id", userId);
+    .update({ ...fields, updated_at: now })
+    .eq("user_id", userId)
+    .select("user_id")
+    .maybeSingle();
+  if (error) return { ok: false as const, error: error.message };
+  if (writeAppUserPlan(Boolean(data), email) === "update") return { ok: true as const };
+  if (writeAppUserPlan(false, email) === "fail") {
+    return { ok: false as const, error: "Could not save that account." };
+  }
+  const { error: upErr } = await supabase.from("app_users").upsert(
+    {
+      user_id: userId,
+      email,
+      credits: 80,
+      ...fields,
+      updated_at: now,
+    },
+    { onConflict: "user_id" },
+  );
+  if (upErr) return { ok: false as const, error: upErr.message };
+  return { ok: true as const };
 }
 
 export async function writeAppUserCredits(
