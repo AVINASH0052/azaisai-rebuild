@@ -9,11 +9,13 @@ export type PlatformAdmin = {
 export async function getPlatformAdmin(
   supabase: SupabaseClient | null,
   userId: string | undefined,
+  known?: { id: string; email?: string | null } | null,
 ): Promise<PlatformAdmin | null> {
   if (!supabase || !userId) return null;
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user =
+    known && known.id === userId
+      ? known
+      : (await supabase.auth.getUser()).data.user;
   if (user && user.id === userId && isDemoAdminEmail(user.email)) {
     return { role: "superadmin", demoReadonly: true };
   }

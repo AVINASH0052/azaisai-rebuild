@@ -19,7 +19,7 @@ export default async function MfaPage({
   if (!supabase || !user) {
     redirect(`/auth/login?returnUrl=${encodeURIComponent("/auth/mfa")}`);
   }
-  const admin = await getPlatformAdmin(supabase, user.id);
+  const admin = await getPlatformAdmin(supabase, user.id, user);
   if (!admin) redirect("/studio/video");
   if (admin.demoReadonly) redirect("/admin");
   if ((await currentAal(supabase)) === "aal2") redirect(afterMfaPath(returnUrl));

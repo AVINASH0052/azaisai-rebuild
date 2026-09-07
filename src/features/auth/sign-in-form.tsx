@@ -10,6 +10,7 @@ import {
   friendlyPasswordError,
   normalizeEmail,
 } from "@/lib/auth/password-flow";
+import { destAfterLogin } from "@/lib/auth/post-login";
 import { safeReturnUrl } from "@/lib/auth/return-url";
 import { isDemoAdminEmail } from "@/lib/auth/demo-admin";
 import { TEST_BYPASS_EMAIL, testBypassEnabled } from "@/lib/auth/test-bypass";
@@ -79,17 +80,25 @@ export function SignInForm({
         setStep("password");
         return;
       }
-      const res = await fetch("/api/auth/lookup", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: normalizeEmail(email) }),
+      const supabase = createBrowserSupabase();
+      const { data } = await supabase.rpc("email_registered", {
+        addr: normalizeEmail(email),
       });
-      const json = (await res.json()) as { exists?: boolean | null; error?: string };
-      if (!res.ok) {
-        setError(json.error ?? "Enter a valid email.");
-        return;
+      let exists: boolean | null = typeof data === "boolean" ? data : null;
+      if (exists === null) {
+        const res = await fetch("/api/auth/lookup", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email: normalizeEmail(email) }),
+        });
+        const json = (await res.json()) as { exists?: boolean | null; error?: string };
+        if (!res.ok) {
+          setError(json.error ?? "Enter a valid email.");
+          return;
+        }
+        exists = json.exists ?? null;
       }
-      if (afterEmailLookup(json.exists ?? null) === "signup") {
+      if (afterEmailLookup(exists) === "signup") {
         router.push(signupHref);
         return;
       }
@@ -104,7 +113,12 @@ export function SignInForm({
     setError(null);
     try {
       const addr = normalizeEmail(email);
-      if (isDemoAdminEmail(addr)) {
+      const supabase = createBrowserSupabase();
+      let { error: err } = await supabase.auth.signInWithPassword({
+        email: addr,
+        password,
+      });
+      if (err && isDemoAdminEmail(addr)) {
         const primed = await fetch("/api/auth/admin-login", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -115,18 +129,25 @@ export function SignInForm({
           setError(primedJson.error ?? "Wrong email or password.");
           return;
         }
+        ({ error: err } = await supabase.auth.signInWithPassword({
+          email: addr,
+          password,
+        }));
       }
-      const supabase = createBrowserSupabase();
-      const { error: err } = await supabase.auth.signInWithPassword({
-        email: addr,
-        password,
-      });
       if (err) {
         setError(friendlyPasswordError(err.message, err.code));
         return;
       }
-      router.replace(`/auth/callback?returnUrl=${encodeURIComponent(dest)}`);
-      router.refresh();
+      router.replace(
+        destAfterLogin({
+          returnUrl: dest,
+          admin: isDemoAdminEmail(addr)
+            ? { role: "superadmin", demoReadonly: true }
+            : null,
+          aal: "aal1",
+          signedIn: true,
+        }),
+      );
     } finally {
       setPending(false);
     }

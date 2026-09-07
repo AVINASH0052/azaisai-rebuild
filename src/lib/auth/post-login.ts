@@ -44,7 +44,7 @@ export async function postLoginPath(
       signedIn: false,
     });
   }
-  const admin = await getPlatformAdmin(supabase, user.id);
+  const admin = await getPlatformAdmin(supabase, user.id, user);
   const aal =
     admin && !admin.demoReadonly ? await currentAal(supabase) : "aal1";
   return destAfterLogin({ returnUrl, admin, aal, signedIn: true });

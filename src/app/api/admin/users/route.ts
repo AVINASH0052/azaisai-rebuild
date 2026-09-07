@@ -24,7 +24,7 @@ async function requireAdmin() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const admin = await getPlatformAdmin(supabase, user?.id);
+  const admin = await getPlatformAdmin(supabase, user?.id, user);
   return { supabase, user, admin };
 }
 
@@ -53,7 +53,16 @@ export async function GET() {
 
   const byId = new Map<string, ServiceUser>();
 
-  const rpc = await supabase.rpc("list_hearth_users");
+  const gotrue = createAdminSupabase();
+  const [rpc, appUsers, listed] = await Promise.all([
+    supabase.rpc("list_hearth_users"),
+    supabase
+      .from("app_users")
+      .select("user_id, email, credits, created_at, banned, generations, credits_spent, last_generated_at"),
+    gotrue
+      ? gotrue.auth.admin.listUsers({ page: 1, perPage: 200 })
+      : Promise.resolve(null),
+  ]);
   if (!rpc.error && Array.isArray(rpc.data)) {
     for (const r of rpc.data as Record<string, unknown>[]) {
       mergeUser(
@@ -72,10 +81,7 @@ export async function GET() {
     }
   }
 
-  const { data: rows } = await supabase
-    .from("app_users")
-    .select("user_id, email, credits, created_at, banned, generations, credits_spent, last_generated_at");
-  for (const r of rows ?? []) {
+  for (const r of appUsers.data ?? []) {
     mergeUser(
       byId,
       serviceUserFromParts({
@@ -91,9 +97,7 @@ export async function GET() {
     );
   }
 
-  const gotrue = createAdminSupabase();
-  if (gotrue) {
-    const listed = await gotrue.auth.admin.listUsers({ page: 1, perPage: 200 });
+  if (listed?.data?.users) {
     for (const u of listed.data.users) {
       const usage = usageFromMeta(u.user_metadata);
       mergeUser(

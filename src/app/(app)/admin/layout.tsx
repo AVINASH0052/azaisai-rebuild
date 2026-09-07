@@ -13,7 +13,7 @@ export default async function AdminLayout({
 }) {
   const supabase = await createServerSupabase();
   const user = supabase ? (await supabase.auth.getUser()).data.user : null;
-  const admin = await getPlatformAdmin(supabase, user?.id);
+  const admin = await getPlatformAdmin(supabase, user?.id, user);
   if (!admin || !supabase || !user) notFound();
   if (!admin.demoReadonly && (await currentAal(supabase)) !== "aal2") {
     redirect("/auth/mfa?returnUrl=%2Fadmin");
