@@ -37,7 +37,7 @@ export function MfaForm({ returnUrl }: { returnUrl: string }) {
           setMode("challenge");
           return;
         }
-        const verified = listed.totp.find((f) => f.status === "verified");
+        const verified = listed.totp.find((f: { status: string }) => f.status === "verified");
         if (verified) {
           setFactorId(verified.id);
           setMode("challenge");

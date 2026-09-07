@@ -3,14 +3,8 @@ create or replace function public.is_demo_admin()
 returns boolean
 language sql
 stable
-security definer
-set search_path = auth
 as $$
-  select exists (
-    select 1 from auth.users
-    where id = auth.uid()
-      and lower(email) = 'admin@hearth.com'
-  );
+  select lower(coalesce(auth.jwt() ->> 'email', '')) = 'admin@hearth.com';
 $$;
 
 create table if not exists app_users (

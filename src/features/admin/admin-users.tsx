@@ -78,7 +78,8 @@ export function AdminUsers() {
   return (
     <div className="mt-6">
       <p className="text-sm text-fg-muted">
-        {customers.length} using {BRAND}
+        {users.length} {users.length === 1 ? "account" : "accounts"}
+        {customers.length ? ` · ${customers.length} using ${BRAND}` : ""}
         {used ? ` · ${used} generations` : ""}
         {banned ? ` · ${banned} banned` : ""}
       </p>

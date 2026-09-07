@@ -1,3 +1,4 @@
+import type { User } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isDemoAdminEmail } from "@/lib/auth/demo-admin";
@@ -26,6 +27,17 @@ async function requireAdmin() {
   } = await supabase.auth.getUser();
   const admin = await getPlatformAdmin(supabase, user?.id, user);
   return { supabase, user, admin };
+}
+
+async function listAuthUsers(gotrue: NonNullable<ReturnType<typeof createAdminSupabase>>) {
+  const users: User[] = [];
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await gotrue.auth.admin.listUsers({ page, perPage: 200 });
+    if (error || !data.users.length) break;
+    users.push(...data.users);
+    if (data.users.length < 200) break;
+  }
+  return users;
 }
 
 function sortUsers(users: ServiceUser[]) {
@@ -59,9 +71,7 @@ export async function GET() {
     supabase
       .from("app_users")
       .select("user_id, email, credits, created_at, banned, generations, credits_spent, last_generated_at"),
-    gotrue
-      ? gotrue.auth.admin.listUsers({ page: 1, perPage: 200 })
-      : Promise.resolve(null),
+    gotrue ? listAuthUsers(gotrue) : Promise.resolve([]),
   ]);
   if (!rpc.error && Array.isArray(rpc.data)) {
     for (const r of rpc.data as Record<string, unknown>[]) {
@@ -97,23 +107,21 @@ export async function GET() {
     );
   }
 
-  if (listed?.data?.users) {
-    for (const u of listed.data.users) {
-      const usage = usageFromMeta(u.user_metadata);
-      mergeUser(
-        byId,
-        serviceUserFromParts({
-          id: u.id,
-          email: u.email ?? "",
-          credits: creditsFromMeta(u.user_metadata),
-          createdAt: u.created_at ?? null,
-          lastGeneratedAt: usage.lastGeneratedAt,
-          generations: usage.generations,
-          creditsSpent: usage.creditsSpent,
-          banned: usage.banned,
-        }),
-      );
-    }
+  for (const u of listed) {
+    const usage = usageFromMeta(u.user_metadata);
+    mergeUser(
+      byId,
+      serviceUserFromParts({
+        id: u.id,
+        email: u.email ?? "",
+        credits: creditsFromMeta(u.user_metadata),
+        createdAt: u.created_at ?? null,
+        lastGeneratedAt: usage.lastGeneratedAt,
+        generations: usage.generations,
+        creditsSpent: usage.creditsSpent,
+        banned: usage.banned,
+      }),
+    );
   }
 
   if (!byId.size) byId.set(user.id, {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   afterEmailLookup,
@@ -14,7 +14,7 @@ import { destAfterLogin } from "@/lib/auth/post-login";
 import { safeReturnUrl } from "@/lib/auth/return-url";
 import { isDemoAdminEmail } from "@/lib/auth/demo-admin";
 import { TEST_BYPASS_EMAIL, testBypassEnabled } from "@/lib/auth/test-bypass";
-import { createBrowserSupabase } from "@/lib/supabase/client";
+import { createBrowserSupabase, warmBrowserSupabase } from "@/lib/supabase/client";
 import { supabaseConfigured } from "@/lib/supabase/config";
 
 const field =
@@ -36,11 +36,51 @@ export function SignInForm({
 }) {
   const router = useRouter();
   const dest = safeReturnUrl(returnUrl);
-  const [step, setStep] = useState<"email" | "password" | "reset">("email");
+  const [step, setStep] = useState<"email" | "password" | "reset">(
+    initialEmail.includes("@") && !isTestEmail(initialEmail) ? "password" : "email",
+  );
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const lookup = useRef<{
+    email: string;
+    exists: boolean | null;
+    inFlight: Promise<boolean | null> | null;
+  }>({ email: "", exists: null, inFlight: null });
+
+  function lookupExists(raw: string) {
+    const addr = normalizeEmail(raw);
+    if (!addr.includes("@")) return Promise.resolve(null);
+    const cur = lookup.current;
+    if (cur.email === addr && cur.exists !== null) return Promise.resolve(cur.exists);
+    if (cur.email === addr && cur.inFlight) return cur.inFlight;
+    const inFlight = createBrowserSupabase()
+      .rpc("email_registered", { addr })
+      .then((res: { data: unknown }) => {
+        const exists = typeof res.data === "boolean" ? res.data : null;
+        if (lookup.current.email === addr) {
+          lookup.current.exists = exists;
+          lookup.current.inFlight = null;
+        }
+        return exists;
+      });
+    lookup.current = { email: addr, exists: null, inFlight };
+    return inFlight;
+  }
+
+  useEffect(() => {
+    if (!supabaseConfigured()) return;
+    warmBrowserSupabase();
+  }, []);
+
+  useEffect(() => {
+    if (!supabaseConfigured()) return;
+    const addr = normalizeEmail(email);
+    if (!addr.includes("@")) return;
+    const t = window.setTimeout(() => void lookupExists(email), 150);
+    return () => window.clearTimeout(t);
+  }, [email]);
 
   const signupHref = authHref("/auth/signup", {
     email: normalizeEmail(email),
@@ -80,24 +120,7 @@ export function SignInForm({
         setStep("password");
         return;
       }
-      const supabase = createBrowserSupabase();
-      const { data } = await supabase.rpc("email_registered", {
-        addr: normalizeEmail(email),
-      });
-      let exists: boolean | null = typeof data === "boolean" ? data : null;
-      if (exists === null) {
-        const res = await fetch("/api/auth/lookup", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ email: normalizeEmail(email) }),
-        });
-        const json = (await res.json()) as { exists?: boolean | null; error?: string };
-        if (!res.ok) {
-          setError(json.error ?? "Enter a valid email.");
-          return;
-        }
-        exists = json.exists ?? null;
-      }
+      const exists = await lookupExists(email);
       if (afterEmailLookup(exists) === "signup") {
         router.push(signupHref);
         return;
