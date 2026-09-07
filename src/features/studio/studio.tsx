@@ -19,7 +19,6 @@ import {
   formatCredits,
   readCredits,
   refundCredits,
-  unlimitedCredits,
 } from "./credits-store";
 import { loadJobs, saveJob } from "./local-jobs";
 import { captureLastFrame } from "./last-frame";
@@ -126,7 +125,7 @@ export function Studio({ mode }: { mode: Kind }) {
     () => (model ? quoteCredits(model, mode === "video" ? durationSec : undefined) : 0),
     [model, mode, durationSec],
   );
-  const canAfford = unlimitedCredits() || balance >= cost;
+  const canAfford = balance >= cost;
 
   async function planBeats() {
     if (!prompt.trim() || mode !== "video" || segments <= 1) return;
@@ -604,9 +603,7 @@ export function Studio({ mode }: { mode: Kind }) {
               : `, ${generatedSeconds(durationSec)}s generated, ${durationSec}s delivered`
             : ""}
           {", "}
-          {unlimitedCredits()
-            ? "unlimited"
-            : `balance ${formatCredits(balance)}${canAfford ? ` → ${balance - cost}` : ", not enough"}`}
+          {`balance ${formatCredits(balance)}${canAfford ? ` → ${balance - cost}` : ", not enough"}`}
         </div>
         {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
         <Button
