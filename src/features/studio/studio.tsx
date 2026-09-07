@@ -63,27 +63,38 @@ export function Studio({ mode }: { mode: Kind }) {
   const [balance, setBalance] = useState(5);
   const [beats, setBeats] = useState<Beat[]>([]);
   const [planning, setPlanning] = useState(false);
+  const [scope, setScope] = useState(0);
 
   const segments = mode === "video" ? segmentCount(durationSec) : 1;
 
   useEffect(() => {
     void pullCredits().then(setBalance);
     const sync = () => setBalance(readCredits());
+    const bump = () => setScope((n) => n + 1);
     window.addEventListener("azai-credits", sync);
-    return () => window.removeEventListener("azai-credits", sync);
+    window.addEventListener("azai-owner", bump);
+    return () => {
+      window.removeEventListener("azai-credits", sync);
+      window.removeEventListener("azai-owner", bump);
+    };
   }, []);
 
   useEffect(() => {
-    const prefs = loadPrefs();
-    if (mode === "video") {
-      setModelId(prefs.videoModelId);
-      setAspect(prefs.videoAspect);
-      setDurationSec(prefs.videoDurationSec);
-    } else {
-      setModelId(prefs.imageModelId);
-      setAspect(prefs.imageAspect);
-      setStyle(prefs.imageStyle as typeof style);
-    }
+    const apply = () => {
+      const prefs = loadPrefs();
+      if (mode === "video") {
+        setModelId(prefs.videoModelId);
+        setAspect(prefs.videoAspect);
+        setDurationSec(prefs.videoDurationSec);
+      } else {
+        setModelId(prefs.imageModelId);
+        setAspect(prefs.imageAspect);
+        setStyle(prefs.imageStyle as typeof style);
+      }
+    };
+    apply();
+    window.addEventListener("azai-owner", apply);
+    return () => window.removeEventListener("azai-owner", apply);
   }, [mode]);
 
   useEffect(() => {
@@ -102,7 +113,10 @@ export function Studio({ mode }: { mode: Kind }) {
     const last = loadJobs().find(
       (j) => j.kind === mode && j.status === "ready" && (j.outputUrls?.length || j.outputUrl),
     );
-    if (!last) return;
+    if (!last) {
+      setResult(null);
+      return;
+    }
     const clips =
       last.kind === "video"
         ? (last.outputUrls?.length ? last.outputUrls : last.outputUrl ? [last.outputUrl] : undefined)
@@ -138,7 +152,7 @@ export function Studio({ mode }: { mode: Kind }) {
     return () => {
       cancelled = true;
     };
-  }, [mode]);
+  }, [mode, scope]);
 
   const cost = useMemo(
     () => (model ? quoteCredits(model, mode === "video" ? durationSec : undefined) : 0),

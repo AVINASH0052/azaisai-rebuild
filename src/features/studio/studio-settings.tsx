@@ -18,7 +18,10 @@ export function StudioSettings() {
   const [prefs, setPrefs] = useState<StudioPrefs>(DEFAULT_PREFS);
   const [saved, setSaved] = useState(false);
   useEffect(() => {
-    setPrefs(loadPrefs());
+    const sync = () => setPrefs(loadPrefs());
+    sync();
+    window.addEventListener("azai-owner", sync);
+    return () => window.removeEventListener("azai-owner", sync);
   }, []);
   const videoModels = useMemo(() => modelsFor("video"), []);
   const imageModels = useMemo(() => modelsFor("image"), []);

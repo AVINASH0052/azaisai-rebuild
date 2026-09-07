@@ -1,4 +1,5 @@
 import { STARTING_CREDITS } from "@/services/credits/meter";
+import { storageKey } from "./local-owner";
 
 const KEY = "azai.credits.v2";
 const START = STARTING_CREDITS;
@@ -9,13 +10,17 @@ export function formatCredits(n: number) {
 
 export function readCredits() {
   if (typeof window === "undefined") return START;
-  const raw = window.localStorage.getItem(KEY);
+  const key = storageKey(KEY);
+  if (!key) return START;
+  const raw = window.localStorage.getItem(key);
   const n = raw == null ? START : Number(raw);
   return Number.isFinite(n) ? n : START;
 }
 
 export function writeCredits(n: number) {
-  window.localStorage.setItem(KEY, String(Math.max(0, n)));
+  const key = storageKey(KEY);
+  if (!key) return;
+  window.localStorage.setItem(key, String(Math.max(0, n)));
   window.dispatchEvent(new Event("azai-credits"));
 }
 

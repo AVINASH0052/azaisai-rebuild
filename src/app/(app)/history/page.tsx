@@ -7,7 +7,10 @@ import { loadJobs, type LocalJob } from "@/features/studio/local-jobs";
 export default function HistoryPage() {
   const [jobs, setJobs] = useState<LocalJob[]>([]);
   useEffect(() => {
-    setJobs(loadJobs());
+    const sync = () => setJobs(loadJobs());
+    sync();
+    window.addEventListener("azai-owner", sync);
+    return () => window.removeEventListener("azai-owner", sync);
   }, []);
 
   return (

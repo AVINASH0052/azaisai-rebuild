@@ -3,6 +3,7 @@ import {
   DURATION_PRESETS,
 } from "@/providers/long-video";
 import { IMAGE_STYLES, modelsFor, type Kind } from "@/providers/registry";
+import { storageKey } from "./local-owner";
 
 const KEY = "azai.studio.prefs";
 
@@ -62,8 +63,10 @@ export function sanitizePrefs(raw: Partial<StudioPrefs> | null | undefined): Stu
 
 export function loadPrefs(): StudioPrefs {
   if (typeof window === "undefined") return DEFAULT_PREFS;
+  const key = storageKey(KEY);
+  if (!key) return DEFAULT_PREFS;
   try {
-    const raw = window.localStorage.getItem(KEY);
+    const raw = window.localStorage.getItem(key);
     return sanitizePrefs(raw ? (JSON.parse(raw) as Partial<StudioPrefs>) : null);
   } catch {
     return DEFAULT_PREFS;
@@ -71,7 +74,9 @@ export function loadPrefs(): StudioPrefs {
 }
 
 export function savePrefs(patch: Partial<StudioPrefs>) {
+  const key = storageKey(KEY);
   const next = sanitizePrefs({ ...loadPrefs(), ...patch });
-  window.localStorage.setItem(KEY, JSON.stringify(next));
+  if (!key) return next;
+  window.localStorage.setItem(key, JSON.stringify(next));
   return next;
 }

@@ -7,12 +7,17 @@ import { formatCredits, readCredits } from "./credits-store";
 export function CreditChip({ fallback }: { fallback: number }) {
   const [balance, setBalance] = useState(fallback);
   useEffect(() => {
-    void pullCredits().then(setBalance);
     const sync = () => setBalance(readCredits());
+    const pull = () => {
+      void pullCredits().then(setBalance);
+    };
+    pull();
     window.addEventListener("azai-credits", sync);
+    window.addEventListener("azai-owner", pull);
     window.addEventListener("storage", sync);
     return () => {
       window.removeEventListener("azai-credits", sync);
+      window.removeEventListener("azai-owner", pull);
       window.removeEventListener("storage", sync);
     };
   }, []);

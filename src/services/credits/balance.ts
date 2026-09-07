@@ -17,14 +17,20 @@ export async function balance(workspaceId: string) {
 
 export async function sessionBalance() {
   if (await hasTestBypass()) {
-    return { balance: STARTING_CREDITS, workspaceId: null as string | null };
+    return {
+      balance: STARTING_CREDITS,
+      workspaceId: null as string | null,
+      owner: "test-bypass",
+    };
   }
   const supabase = await createServerSupabase();
-  if (!supabase) return { balance: 0, workspaceId: null as string | null };
+  if (!supabase) {
+    return { balance: 0, workspaceId: null as string | null, owner: null as string | null };
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { balance: 0, workspaceId: null };
+  if (!user) return { balance: 0, workspaceId: null, owner: null };
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -34,5 +40,6 @@ export async function sessionBalance() {
   return {
     balance: creditsFromMeta(user.user_metadata),
     workspaceId: (profile?.default_workspace_id as string | null) ?? null,
+    owner: user.id,
   };
 }

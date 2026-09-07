@@ -18,9 +18,11 @@ export default function CreditsPage() {
       setJobs(loadJobs());
     };
     window.addEventListener("azai-credits", sync);
+    window.addEventListener("azai-owner", sync);
     window.addEventListener("storage", sync);
     return () => {
       window.removeEventListener("azai-credits", sync);
+      window.removeEventListener("azai-owner", sync);
       window.removeEventListener("storage", sync);
     };
   }, []);
