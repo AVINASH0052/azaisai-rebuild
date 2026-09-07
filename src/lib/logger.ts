@@ -3,7 +3,7 @@ import { env } from "@/lib/env";
 
 export const log = pino({
   level: env.LOG_LEVEL,
-  base: { service: "azaisai" },
+  base: { service: "hearth" },
   redact: {
     paths: [
       "email",

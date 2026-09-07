@@ -9,7 +9,7 @@ as $$
   select exists (
     select 1 from auth.users
     where id = auth.uid()
-      and lower(email) = 'admin@azaisai.test'
+      and lower(email) = 'admin@hearth.com'
   );
 $$;
 
