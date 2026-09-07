@@ -15,12 +15,18 @@ import {
   segmentCount,
 } from "@/providers/long-video";
 import {
+  pullCredits,
+  restoreCredits,
+  returnCredits,
+} from "./credits-client";
+import {
   debitCredits,
   formatCredits,
   readCredits,
-  refundCredits,
+  writeCredits,
 } from "./credits-store";
 import { loadJobs, saveJob } from "./local-jobs";
+import { loadPrefs } from "./prefs";
 import { captureLastFrame } from "./last-frame";
 import { imageFilename, stitchClips, stitchFilename } from "./stitch";
 
@@ -61,11 +67,24 @@ export function Studio({ mode }: { mode: Kind }) {
   const segments = mode === "video" ? segmentCount(durationSec) : 1;
 
   useEffect(() => {
-    setBalance(readCredits());
+    void pullCredits().then(setBalance);
     const sync = () => setBalance(readCredits());
     window.addEventListener("azai-credits", sync);
     return () => window.removeEventListener("azai-credits", sync);
   }, []);
+
+  useEffect(() => {
+    const prefs = loadPrefs();
+    if (mode === "video") {
+      setModelId(prefs.videoModelId);
+      setAspect(prefs.videoAspect);
+      setDurationSec(prefs.videoDurationSec);
+    } else {
+      setModelId(prefs.imageModelId);
+      setAspect(prefs.imageAspect);
+      setStyle(prefs.imageStyle as typeof style);
+    }
+  }, [mode]);
 
   useEffect(() => {
     if (!model) return;
@@ -209,17 +228,24 @@ export function Studio({ mode }: { mode: Kind }) {
         outputUrls?: string[];
         operation?: string;
         segments?: number;
+        balance?: number;
         error?: { message: string };
       };
       if (!res.ok || !json.id) {
-        refundCredits(cost);
-        setError(json.error?.message ?? "Could not start that generation.");
+        await restoreCredits(cost);
+        setError(
+          json.error?.message ??
+            (res.status === 402
+              ? "Not enough credits for this generation."
+              : "Could not start that generation."),
+        );
         setStage(null);
         return;
       }
+      if (typeof json.balance === "number") writeCredits(json.balance);
       const jobId = json.id;
       const live = json.provider === "google";
-      saveJob({
+      const jobBase = {
         id: jobId,
         kind: mode,
         modelId: model.id,
@@ -228,8 +254,13 @@ export function Studio({ mode }: { mode: Kind }) {
         aspect,
         cost,
         createdAt: Date.now(),
-        status: "queued",
-      });
+      };
+      saveJob({ ...jobBase, status: "queued" });
+      const failJob = async (message: string) => {
+        await returnCredits(cost);
+        saveJob({ ...jobBase, status: "failed" });
+        setError(message);
+      };
       const finish = async (outputUrl?: string, outputUrls?: string[]) => {
         const rawClips =
           mode === "video"
@@ -293,8 +324,7 @@ export function Studio({ mode }: { mode: Kind }) {
         return;
       }
       if (live && !json.operation) {
-        refundCredits(cost);
-        setError("Google did not return a Veo operation.");
+        await failJob("Google did not return a Veo operation.");
         return;
       }
       let operation = json.operation;
@@ -343,8 +373,7 @@ export function Studio({ mode }: { mode: Kind }) {
           error?: { message: string };
         };
         if (!poll.ok) {
-          refundCredits(cost);
-          setError(body.error?.message ?? "Generation failed. Credits returned.");
+          await failJob(body.error?.message ?? "Generation failed. Credits returned.");
           break;
         }
         setProgress(body.progress ?? 0);
@@ -355,16 +384,14 @@ export function Studio({ mode }: { mode: Kind }) {
         if (body.completedOps) completedOps = body.completedOps;
         if (body.status === "need_seed") {
           if (!body.lastUrl) {
-            refundCredits(cost);
-            setError("Could not load the last frame.");
+            await failJob("Could not load the last frame.");
             break;
           }
           setStage("Capturing last frame");
           try {
             seedImage = await captureLastFrame(body.lastUrl);
           } catch {
-            refundCredits(cost);
-            setError("Could not capture the last frame.");
+            await failJob("Could not capture the last frame.");
             break;
           }
           continue;
@@ -374,8 +401,7 @@ export function Studio({ mode }: { mode: Kind }) {
           break;
         }
         if (body.status === "failed") {
-          refundCredits(cost);
-          setError(body.stage ?? "Generation failed. Credits returned.");
+          await failJob(body.stage ?? "Generation failed. Credits returned.");
           break;
         }
       }
@@ -613,7 +639,7 @@ export function Studio({ mode }: { mode: Kind }) {
           disabled={busy || !prompt.trim() || !canAfford}
           onClick={() => void generate()}
         >
-          {busy ? "Working…" : "Generate"}
+          {busy ? "Working…" : canAfford ? "Generate" : "Not enough credits"}
         </Button>
         <p className="mt-2 text-center font-mono text-[11px] text-fg-subtle">
           ⌘↵ Google AI Studio

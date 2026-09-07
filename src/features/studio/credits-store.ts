@@ -1,7 +1,7 @@
-import { TEST_BYPASS_CREDITS } from "@/lib/auth/test-bypass";
+import { STARTING_CREDITS } from "@/services/credits/meter";
 
 const KEY = "azai.credits.v2";
-const START = TEST_BYPASS_CREDITS;
+const START = STARTING_CREDITS;
 
 export function formatCredits(n: number) {
   return Number.isFinite(n) ? String(n) : "∞";

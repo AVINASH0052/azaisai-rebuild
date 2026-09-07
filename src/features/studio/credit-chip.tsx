@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { pullCredits } from "./credits-client";
 import { formatCredits, readCredits } from "./credits-store";
 
 export function CreditChip({ fallback }: { fallback: number }) {
   const [balance, setBalance] = useState(fallback);
   useEffect(() => {
+    void pullCredits().then(setBalance);
     const sync = () => setBalance(readCredits());
-    sync();
     window.addEventListener("azai-credits", sync);
     window.addEventListener("storage", sync);
     return () => {

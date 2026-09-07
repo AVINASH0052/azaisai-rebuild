@@ -12,6 +12,7 @@ import { isVideoDuration, segmentCount, veoSecForBeat } from "@/providers/long-v
 import { env } from "@/lib/env";
 import { generateGoogleImage, googleLive, submitGoogleVideo } from "@/providers/google";
 import { createLiveJobId } from "@/providers/pipeline";
+import { refundCreditsAccount, spendCredits } from "@/services/credits/spend";
 
 export const maxDuration = 60;
 
@@ -38,9 +39,13 @@ const bodySchema = z.object({
 
 export async function POST(req: Request) {
   const id = requestId(req.headers.get("x-request-id"));
+  const bypass = await hasTestBypass();
+  const supabase =
+    supabaseConfigured() && !bypass ? await createServerSupabase() : null;
+  let charged = 0;
+  let cost = 0;
   try {
-    if (supabaseConfigured() && !(await hasTestBypass())) {
-      const supabase = await createServerSupabase();
+    if (supabaseConfigured() && !bypass) {
       const user = supabase ? (await supabase.auth.getUser()).data.user : null;
       if (!user) throw new AppError("UNAUTHENTICATED", "Sign in to generate.");
     }
@@ -66,8 +71,14 @@ export async function POST(req: Request) {
     if (storyboard && storyboard.length !== segments) {
       throw new AppError("INVALID_REQUEST", "Storyboard length must match segment count.");
     }
-    const cost = quoteCredits(model, durationSec);
+    cost = quoteCredits(model, durationSec);
     const firstPrompt = storyboard?.[0]?.prompt ?? prompt;
+    let balance: number | undefined;
+    if (supabase) {
+      // ponytail: last-write-wins on user_metadata; upgrade to a ledger RPC if two tabs spend at once
+      balance = await spendCredits(supabase, cost);
+      charged = cost;
+    }
 
     if (googleLive(model)) {
       try {
@@ -77,6 +88,7 @@ export async function POST(req: Request) {
             {
               id: createLiveJobId("image"),
               cost,
+              balance,
               segments: 1,
               provider: "google",
               status: "ready",
@@ -97,6 +109,7 @@ export async function POST(req: Request) {
           {
             id: jobId,
             cost,
+            balance,
             segments,
             provider: "google",
             operation: handle.jobId,
@@ -116,6 +129,7 @@ export async function POST(req: Request) {
       {
         id: jobId,
         cost,
+        balance,
         segments,
         estimatedSeconds: model.estimatedSeconds * segments,
         provider: "mock",
@@ -123,6 +137,9 @@ export async function POST(req: Request) {
       { status: 202, headers: { "X-Request-Id": id } },
     );
   } catch (err) {
+    if (charged && supabase) {
+      await refundCreditsAccount(supabase, charged).catch(() => null);
+    }
     const app =
       err instanceof AppError
         ? err

@@ -1,3 +1,4 @@
+import { StudioSettings } from "@/features/studio/studio-settings";
 import { TEST_BYPASS_EMAIL } from "@/lib/auth/test-bypass";
 import { createServerSupabase, hasTestBypass } from "@/lib/supabase/server";
 
@@ -62,6 +63,13 @@ export default async function SettingsPage() {
         ) : (
           <p className="mt-2 text-fg-muted">Sign in to see your account.</p>
         )}
+      </div>
+      <div className="mt-6 rounded-3xl border border-border bg-bg-elevated px-6 py-10 shadow-card">
+        <h1 className="text-3xl text-fg">Generation</h1>
+        <p className="mt-2 text-sm text-fg-muted">
+          Choose the image and video defaults Studio should open with.
+        </p>
+        <StudioSettings />
       </div>
     </main>
   );

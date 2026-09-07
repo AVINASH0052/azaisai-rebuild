@@ -1,5 +1,7 @@
 /** ponytail: temp mailer bypass. Delete this file, /api/auth/test-bypass, the form button, and cookie checks in middleware. */
 
+import { STARTING_CREDITS } from "@/services/credits/meter";
+
 export const TEST_BYPASS_EMAIL = "dev@azaisai.test";
 export const TEST_BYPASS_COOKIE = "azai_test_bypass";
 
@@ -17,8 +19,9 @@ export function expireAuthCookie() {
     expires: new Date(0),
   };
 }
+
 /** Enough for several 6s Veo Fast clips (9 cr each: 6s × 1.5). */
-export const TEST_BYPASS_CREDITS = 80;
+export const TEST_BYPASS_CREDITS = STARTING_CREDITS;
 
 export function testBypassEnabled() {
   return process.env.NEXT_PUBLIC_AUTH_TEST_BYPASS === "1";
