@@ -13,9 +13,15 @@ export function destAfterLogin(opts: {
   signedIn: boolean;
 }) {
   const explicit = parseReturnUrl(opts.returnUrl);
+  const adminReady = Boolean(
+    opts.admin && (opts.admin.demoReadonly || opts.aal === "aal2"),
+  );
+  if (adminReady) {
+    if (explicit && explicit.startsWith("/admin")) return explicit;
+    return "/admin";
+  }
   if (explicit) return explicit;
   if (!opts.signedIn || !opts.admin) return "/studio/video";
-  if (opts.admin.demoReadonly || opts.aal === "aal2") return "/admin";
   return "/auth/mfa?returnUrl=%2Fadmin";
 }
 

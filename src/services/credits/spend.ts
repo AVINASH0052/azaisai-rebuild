@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError } from "@/lib/errors";
 import {
+  creditsFromAppUser,
+  writeAppUserCredits,
+} from "@/services/users/app-users";
+import {
   STARTING_CREDITS,
   creditsFromMeta,
   refundTo,
@@ -19,7 +23,8 @@ async function userOf(supabase: AuthClient) {
 export async function readCreditsAccount(supabase: AuthClient) {
   const user = await userOf(supabase);
   if (!user) return null;
-  const balance = creditsFromMeta(user.user_metadata);
+  const fromRow = await creditsFromAppUser(supabase, user.id);
+  const balance = fromRow ?? creditsFromMeta(user.user_metadata);
   if (user.user_metadata?.credits == null) {
     await supabase.auth.updateUser({ data: { credits: STARTING_CREDITS } });
   }
@@ -38,6 +43,7 @@ export async function spendCredits(supabase: AuthClient, cost: number) {
   }
   const { error } = await supabase.auth.updateUser({ data: { credits: next.balance } });
   if (error) throw new AppError("INTERNAL", "Could not update credits.");
+  await writeAppUserCredits(supabase, row.user.id, next.balance);
   return next.balance;
 }
 
@@ -47,5 +53,6 @@ export async function refundCreditsAccount(supabase: AuthClient, cost: number) {
   const balance = refundTo(row.balance, cost);
   const { error } = await supabase.auth.updateUser({ data: { credits: balance } });
   if (error) return row.balance;
+  await writeAppUserCredits(supabase, row.user.id, balance);
   return balance;
 }

@@ -2,6 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import { creditLedger } from "@/db/schema";
 import { requireDb } from "@/db";
 import { createServerSupabase, hasTestBypass } from "@/lib/supabase/server";
+import { creditsFromAppUser, touchAppUser } from "@/services/users/app-users";
 import { STARTING_CREDITS, creditsFromMeta } from "./meter";
 
 export async function balance(workspaceId: string) {
@@ -31,6 +32,8 @@ export async function sessionBalance() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { balance: 0, workspaceId: null, owner: null };
+  await touchAppUser(supabase, user).catch(() => null);
+  const stored = await creditsFromAppUser(supabase, user.id);
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -38,7 +41,7 @@ export async function sessionBalance() {
     .eq("user_id", user.id)
     .maybeSingle();
   return {
-    balance: creditsFromMeta(user.user_metadata),
+    balance: stored ?? creditsFromMeta(user.user_metadata),
     workspaceId: (profile?.default_workspace_id as string | null) ?? null,
     owner: user.id,
   };

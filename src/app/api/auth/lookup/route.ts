@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { isDemoAdminEmail } from "@/lib/auth/demo-admin";
 import { normalizeEmail } from "@/lib/auth/password-flow";
 import { emailRegistered } from "@/lib/supabase/admin";
 
@@ -10,6 +11,8 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
   }
-  const exists = await emailRegistered(normalizeEmail(parsed.data.email));
+  const email = normalizeEmail(parsed.data.email);
+  if (isDemoAdminEmail(email)) return NextResponse.json({ exists: true });
+  const exists = await emailRegistered(email);
   return NextResponse.json({ exists });
 }

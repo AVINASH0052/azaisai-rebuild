@@ -11,6 +11,7 @@ import {
   normalizeEmail,
 } from "@/lib/auth/password-flow";
 import { safeReturnUrl } from "@/lib/auth/return-url";
+import { isDemoAdminEmail } from "@/lib/auth/demo-admin";
 import { TEST_BYPASS_EMAIL, testBypassEnabled } from "@/lib/auth/test-bypass";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { supabaseConfigured } from "@/lib/supabase/config";
@@ -70,8 +71,12 @@ export function SignInForm({
     setPending(true);
     setError(null);
     try {
-      if (isTestEmail(email)) {
-        await bypass();
+      if (isTestEmail(email) || isDemoAdminEmail(email)) {
+        if (isTestEmail(email)) {
+          await bypass();
+          return;
+        }
+        setStep("password");
         return;
       }
       const res = await fetch("/api/auth/lookup", {
@@ -98,9 +103,22 @@ export function SignInForm({
     setPending(true);
     setError(null);
     try {
+      const addr = normalizeEmail(email);
+      if (isDemoAdminEmail(addr)) {
+        const primed = await fetch("/api/auth/admin-login", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email: addr, password }),
+        });
+        const primedJson = (await primed.json()) as { error?: string };
+        if (!primed.ok) {
+          setError(primedJson.error ?? "Wrong email or password.");
+          return;
+        }
+      }
       const supabase = createBrowserSupabase();
       const { error: err } = await supabase.auth.signInWithPassword({
-        email: normalizeEmail(email),
+        email: addr,
         password,
       });
       if (err) {

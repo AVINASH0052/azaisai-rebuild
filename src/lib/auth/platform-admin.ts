@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isDemoAdminEmail } from "./demo-admin";
 
 export type PlatformAdmin = {
   role: "support" | "operator" | "superadmin";
@@ -10,6 +11,12 @@ export async function getPlatformAdmin(
   userId: string | undefined,
 ): Promise<PlatformAdmin | null> {
   if (!supabase || !userId) return null;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user && user.id === userId && isDemoAdminEmail(user.email)) {
+    return { role: "superadmin", demoReadonly: true };
+  }
   const { data, error } = await supabase
     .from("platform_admins")
     .select("role, revoked_at, demo_readonly")

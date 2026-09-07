@@ -28,9 +28,13 @@ function parseReturnUrl(value) {
 
 function destAfterLogin({ returnUrl, admin, aal, signedIn }) {
   const explicit = parseReturnUrl(returnUrl);
+  const adminReady = Boolean(admin && (admin.demoReadonly || aal === "aal2"));
+  if (adminReady) {
+    if (explicit && explicit.startsWith("/admin")) return explicit;
+    return "/admin";
+  }
   if (explicit) return explicit;
   if (!signedIn || !admin) return "/studio/video";
-  if (admin.demoReadonly || aal === "aal2") return "/admin";
   return "/auth/mfa?returnUrl=%2Fadmin";
 }
 
@@ -61,6 +65,10 @@ assert.equal(
 );
 assert.equal(
   destAfterLogin({ returnUrl: null, admin: demo, aal: "aal1", signedIn: true }),
+  "/admin",
+);
+assert.equal(
+  destAfterLogin({ returnUrl: "/studio/video", admin: demo, aal: "aal1", signedIn: true }),
   "/admin",
 );
 assert.equal(
