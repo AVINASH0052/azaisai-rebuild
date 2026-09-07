@@ -2,7 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError } from "@/lib/errors";
 import {
   creditsFromAppUser,
-  writeAppUserCredits,
+  isUserBanned,
+  usageAfterSpend,
+  writeAppUser,
 } from "@/services/users/app-users";
 import {
   STARTING_CREDITS,
@@ -34,6 +36,9 @@ export async function readCreditsAccount(supabase: AuthClient) {
 export async function spendCredits(supabase: AuthClient, cost: number) {
   const row = await readCreditsAccount(supabase);
   if (!row) throw new AppError("UNAUTHENTICATED", "Sign in to generate.");
+  if (await isUserBanned(supabase, row.user)) {
+    throw new AppError("ACCOUNT_SUSPENDED", "This Hearth account is banned.");
+  }
   const next = spendFrom(row.balance, cost);
   if (!next.ok) {
     throw new AppError("INSUFFICIENT_CREDITS", "Not enough credits for this generation.", {
@@ -41,9 +46,17 @@ export async function spendCredits(supabase: AuthClient, cost: number) {
       cost,
     });
   }
-  const { error } = await supabase.auth.updateUser({ data: { credits: next.balance } });
+  const usage = usageAfterSpend(row.user.user_metadata, next.charged);
+  const { error } = await supabase.auth.updateUser({
+    data: { credits: next.balance, ...usage },
+  });
   if (error) throw new AppError("INTERNAL", "Could not update credits.");
-  await writeAppUserCredits(supabase, row.user.id, next.balance);
+  await writeAppUser(supabase, row.user.id, {
+    credits: next.balance,
+    generations: usage.generations,
+    credits_spent: usage.credits_spent,
+    last_generated_at: usage.last_generated_at,
+  });
   return next.balance;
 }
 
@@ -53,6 +66,6 @@ export async function refundCreditsAccount(supabase: AuthClient, cost: number) {
   const balance = refundTo(row.balance, cost);
   const { error } = await supabase.auth.updateUser({ data: { credits: balance } });
   if (error) return row.balance;
-  await writeAppUserCredits(supabase, row.user.id, balance);
+  await writeAppUser(supabase, row.user.id, { credits: balance });
   return balance;
 }

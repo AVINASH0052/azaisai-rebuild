@@ -5,6 +5,7 @@ import { requestId } from "@/lib/request-id";
 import { createServerSupabase, hasTestBypass } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { variatePrompt } from "@/services/prompt/enhance";
+import { assertCanUseHearth } from "@/services/users/require-hearth";
 
 const bodySchema = z.object({
   prompt: z.string().min(1),
@@ -18,6 +19,7 @@ export async function POST(req: Request) {
       const supabase = await createServerSupabase();
       const user = supabase ? (await supabase.auth.getUser()).data.user : null;
       if (!user) throw new AppError("UNAUTHENTICATED", "Sign in to vary a prompt.");
+      await assertCanUseHearth(supabase);
     }
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) {

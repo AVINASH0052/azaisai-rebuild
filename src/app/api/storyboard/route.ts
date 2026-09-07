@@ -6,6 +6,7 @@ import { createServerSupabase, hasTestBypass } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { isVideoDuration } from "@/providers/long-video";
 import { planStoryboard } from "@/services/prompt/storyboard";
+import { assertCanUseHearth } from "@/services/users/require-hearth";
 
 const bodySchema = z.object({
   prompt: z.string().min(1).max(4000),
@@ -19,6 +20,7 @@ export async function POST(req: Request) {
       const supabase = await createServerSupabase();
       const user = supabase ? (await supabase.auth.getUser()).data.user : null;
       if (!user) throw new AppError("UNAUTHENTICATED", "Sign in to plan a storyboard.");
+      await assertCanUseHearth(supabase);
     }
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success || !isVideoDuration(parsed.data.durationSec)) {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { BRAND } from "@/lib/brand";
 import type { ServiceUser } from "@/services/users/app-users";
 
 const field =
@@ -41,23 +42,18 @@ export function AdminUsers() {
     void load();
   }, []);
 
-  async function save(user: ServiceUser) {
-    const credits = Number(drafts[user.id]);
-    if (!Number.isFinite(credits)) {
-      setError("Credits must be a number.");
-      return;
-    }
+  async function patch(user: ServiceUser, body: { credits?: number; banned?: boolean }) {
     setSaving(user.id);
     setError(null);
     try {
       const res = await fetch("/api/admin/users", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ userId: user.id, credits: Math.floor(credits) }),
+        body: JSON.stringify({ userId: user.id, ...body }),
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(json.error ?? "Could not update credits.");
+        setError(json.error ?? "Could not update that account.");
         return;
       }
       await load();
@@ -66,10 +62,25 @@ export function AdminUsers() {
     }
   }
 
+  async function saveCredits(user: ServiceUser) {
+    const credits = Number(drafts[user.id]);
+    if (!Number.isFinite(credits)) {
+      setError("Credits must be a number.");
+      return;
+    }
+    await patch(user, { credits: Math.floor(credits) });
+  }
+
+  const customers = users.filter((u) => !u.admin);
+  const banned = customers.filter((u) => u.banned).length;
+  const used = customers.reduce((n, u) => n + u.generations, 0);
+
   return (
     <div className="mt-6">
       <p className="text-sm text-fg-muted">
-        {users.filter((u) => !u.admin).length} people using the service.
+        {customers.length} using {BRAND}
+        {used ? ` · ${used} generations` : ""}
+        {banned ? ` · ${banned} banned` : ""}
       </p>
       {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
       {users.length === 0 ? (
@@ -79,7 +90,7 @@ export function AdminUsers() {
           {users.map((user) => (
             <li
               key={user.id}
-              className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-3 py-4 lg:flex-row lg:items-center lg:justify-between"
             >
               <div>
                 <p className="text-sm text-fg">
@@ -89,12 +100,24 @@ export function AdminUsers() {
                       admin
                     </span>
                   ) : null}
+                  {user.banned ? (
+                    <span className="ml-2 font-mono text-[10px] tracking-wide text-danger uppercase">
+                      banned
+                    </span>
+                  ) : null}
                 </p>
                 <p className="font-mono text-xs text-fg-subtle">
                   Joined {joinedLabel(user.createdAt)}
+                  {" · "}
+                  {user.generations} gen
+                  {" · "}
+                  {user.creditsSpent} cr used
+                  {user.lastGeneratedAt
+                    ? ` · last ${joinedLabel(user.lastGeneratedAt)}`
+                    : ""}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <input
                   className={field}
                   type="number"
@@ -110,10 +133,21 @@ export function AdminUsers() {
                   type="button"
                   size="sm"
                   disabled={saving === user.id}
-                  onClick={() => void save(user)}
+                  onClick={() => void saveCredits(user)}
                 >
-                  {saving === user.id ? "Saving…" : "Save"}
+                  {saving === user.id ? "Saving…" : "Assign"}
                 </Button>
+                {user.admin ? null : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={user.banned ? "outline" : "destructive"}
+                    disabled={saving === user.id}
+                    onClick={() => void patch(user, { banned: !user.banned })}
+                  >
+                    {user.banned ? "Unban" : "Ban"}
+                  </Button>
+                )}
               </div>
             </li>
           ))}

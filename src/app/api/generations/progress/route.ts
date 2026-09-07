@@ -9,6 +9,7 @@ import { getModel } from "@/providers/registry";
 import { submitGoogleVideo, pollGoogle, type SeedImage } from "@/providers/google";
 import { afterSegmentReady, clipFileUrl, pipelineProgress } from "@/providers/pipeline";
 import { veoSecForBeat } from "@/providers/long-video";
+import { assertCanUseHearth } from "@/services/users/require-hearth";
 
 export const maxDuration = 60;
 
@@ -61,6 +62,7 @@ export async function POST(req: Request) {
       const supabase = await createServerSupabase();
       const user = supabase ? (await supabase.auth.getUser()).data.user : null;
       if (!user) throw new AppError("UNAUTHENTICATED", "Sign in to generate.");
+      await assertCanUseHearth(supabase);
     }
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) {

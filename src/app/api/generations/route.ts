@@ -13,6 +13,7 @@ import { env } from "@/lib/env";
 import { generateGoogleImage, googleLive, submitGoogleVideo } from "@/providers/google";
 import { createLiveJobId } from "@/providers/pipeline";
 import { refundCreditsAccount, spendCredits } from "@/services/credits/spend";
+import { assertCanUseHearth } from "@/services/users/require-hearth";
 
 export const maxDuration = 60;
 
@@ -48,6 +49,7 @@ export async function POST(req: Request) {
     if (supabaseConfigured() && !bypass) {
       const user = supabase ? (await supabase.auth.getUser()).data.user : null;
       if (!user) throw new AppError("UNAUTHENTICATED", "Sign in to generate.");
+      await assertCanUseHearth(supabase);
     }
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) {
