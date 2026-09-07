@@ -26,8 +26,11 @@ export async function readCreditsAccount(supabase: AuthClient) {
   const user = await userOf(supabase);
   if (!user) return null;
   const fromRow = await creditsFromAppUser(supabase, user.id);
-  const balance = fromRow ?? creditsFromMeta(user.user_metadata);
-  if (user.user_metadata?.credits == null) {
+  const meta = creditsFromMeta(user.user_metadata);
+  const balance = fromRow ?? meta;
+  if (fromRow != null && fromRow !== meta) {
+    await supabase.auth.updateUser({ data: { credits: fromRow } });
+  } else if (user.user_metadata?.credits == null) {
     await supabase.auth.updateUser({ data: { credits: STARTING_CREDITS } });
   }
   return { user, balance };

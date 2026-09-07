@@ -69,20 +69,31 @@ export function serviceUserFromParts(opts: {
   };
 }
 
+export function touchAppUserSeed(hasRow: boolean) {
+  return hasRow ? "keep" : "seed";
+}
+
 export async function touchAppUser(supabase: SupabaseClient, user: User) {
+  const existing = await readAppUserRow(supabase, user.id);
+  if (touchAppUserSeed(Boolean(existing)) === "keep") {
+    if (user.email) {
+      await supabase
+        .from("app_users")
+        .update({ email: user.email, updated_at: new Date().toISOString() })
+        .eq("user_id", user.id);
+    }
+    return;
+  }
   const credits = creditsFromMeta(user.user_metadata);
   const usage = usageFromMeta(user.user_metadata);
-  await supabase.from("app_users").upsert(
-    {
-      user_id: user.id,
-      email: user.email ?? "",
-      credits,
-      banned: usage.banned,
-      generations: usage.generations,
-      credits_spent: usage.creditsSpent,
-    },
-    { onConflict: "user_id" },
-  );
+  await supabase.from("app_users").insert({
+    user_id: user.id,
+    email: user.email ?? "",
+    credits,
+    banned: usage.banned,
+    generations: usage.generations,
+    credits_spent: usage.creditsSpent,
+  });
 }
 
 export async function readAppUserRow(supabase: SupabaseClient, userId: string) {

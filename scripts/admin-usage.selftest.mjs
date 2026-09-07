@@ -37,4 +37,10 @@ function writeAppUserPlan(hasRow, email) {
 assert.equal(writeAppUserPlan(true, null), "update");
 assert.equal(writeAppUserPlan(false, "a@b.co"), "insert");
 assert.equal(writeAppUserPlan(false, null), "fail");
+
+function touchAppUserSeed(hasRow) {
+  return hasRow ? "keep" : "seed";
+}
+assert.equal(touchAppUserSeed(true), "keep");
+assert.equal(touchAppUserSeed(false), "seed");
 console.log("admin-usage.selftest ok");

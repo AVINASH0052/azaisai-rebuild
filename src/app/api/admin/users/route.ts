@@ -67,13 +67,30 @@ export async function GET() {
   const byId = new Map<string, ServiceUser>();
 
   const gotrue = createAdminSupabase();
-  const [rpc, appUsers, listed] = await Promise.all([
-    supabase.rpc("list_hearth_users"),
+  const [listed, appUsers, rpc] = await Promise.all([
+    gotrue ? listAuthUsers(gotrue) : Promise.resolve([]),
     supabase
       .from("app_users")
       .select("user_id, email, credits, created_at, banned, generations, credits_spent, last_generated_at"),
-    gotrue ? listAuthUsers(gotrue) : Promise.resolve([]),
+    supabase.rpc("list_hearth_users"),
   ]);
+  for (const u of listed) {
+    const usage = usageFromMeta(u.user_metadata);
+    mergeUser(
+      byId,
+      serviceUserFromParts({
+        id: u.id,
+        email: u.email ?? "",
+        credits: creditsFromMeta(u.user_metadata),
+        createdAt: u.created_at ?? null,
+        lastGeneratedAt: usage.lastGeneratedAt,
+        generations: usage.generations,
+        creditsSpent: usage.creditsSpent,
+        banned: usage.banned,
+      }),
+    );
+  }
+
   if (!rpc.error && Array.isArray(rpc.data)) {
     for (const r of rpc.data as Record<string, unknown>[]) {
       mergeUser(
@@ -104,23 +121,6 @@ export async function GET() {
         generations: Number(r.generations) || 0,
         creditsSpent: Number(r.credits_spent) || 0,
         banned: Boolean(r.banned),
-      }),
-    );
-  }
-
-  for (const u of listed) {
-    const usage = usageFromMeta(u.user_metadata);
-    mergeUser(
-      byId,
-      serviceUserFromParts({
-        id: u.id,
-        email: u.email ?? "",
-        credits: creditsFromMeta(u.user_metadata),
-        createdAt: u.created_at ?? null,
-        lastGeneratedAt: usage.lastGeneratedAt,
-        generations: usage.generations,
-        creditsSpent: usage.creditsSpent,
-        banned: usage.banned,
       }),
     );
   }
